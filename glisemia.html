@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Glicemia</title>
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Glicemia Tracker">
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a6fd8;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            overflow-x: hidden;
+            padding: 20px 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px 12px 50px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-600);
+            pointer-events: none;
+        }
+
+        .form-container {
+            padding: 30px;
+            background: var(--gray-50);
+            display: none; /* Inicialmente oculto */
+        }
+
+        .form-container.active {
+            display: block;
+        }
+
+        .form-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 30px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-toggle.active {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            transform: rotate(45deg);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input, .form-select {
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info) 0%, #2563eb 100%);
+            color: white;
+        }
+        
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .table th {
+            background: linear-gradient(135deg, var(--gray-700) 0%, var(--gray-800) 100%);
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--gray-200);
+            transition: var(--transition);
+        }
+
+        .table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-warning{
+            background: #efb8b8;
+            color: #166534;
+        }
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-critical {
+            background: #7f1d1d;
+            color: #fee2e2;
+        }
+        
+        .badge-low {
+            background: #fef3c7;
+            color: #92400e;
+        }        
+        .tooltip-trigger {
+            cursor: pointer;
+            position: relative;
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--dark);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+        }
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--dark);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sync-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .sync-status.synced {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .sync-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .sync-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .offline-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--danger);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: var(--transition);
+        }
+
+        .offline-indicator.show {
+            transform: translateX(0);
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid var(--gray-200);
+            border-top: 6px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .table {
+                font-size: 14px;
+            }
+
+            .table th,
+            .table td {
+                padding: 12px 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .table {
+                font-size: 12px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 8px 2px;
+            }
+            
+            .badge {
+                font-size: 10px;
+                padding: 2px 8px;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            
+            .form-input, .form-select {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+        }
+
+        /* Específico para 428x806 (iPhone 14 Pro Max e similares) */
+        @media (max-width: 428px) and (max-height: 926px) {
+            .container {
+                padding: 8px;
+                padding-bottom: 100px; /* Espaço para o botão flutuante */
+            }
+            
+            .header {
+                margin-bottom: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 12px;
+            }
+            
+            .sync-status {
+                font-size: 11px;
+                padding: 6px 12px;
+                margin-bottom: 15px;
+            }
+            
+            .card-header {
+                padding: 15px;
+            }
+            
+            .search-input {
+                padding: 10px 16px 10px 40px;
+                font-size: 14px;
+            }
+            
+            .table-container {
+                padding: 10px;
+            }
+            
+            .table {
+                font-size: 11px;
+            }
+            
+            .table th {
+                padding: 10px 4px;
+                font-size: 10px;
+            }
+            
+            .table td {
+                padding: 8px 4px;
+            }
+            
+            .badge {
+                font-size: 9px;
+                padding: 2px 6px;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+            
+            .form-grid {
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .form-label {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .form-input, .form-select {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .button-group {
+                gap: 10px;
+            }
+            
+            .form-toggle {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --light: #1e293b;
+                --dark: #f8fafc;
+                --gray-50: #1e293b;
+                --gray-100: #334155;
+                --gray-200: #475569;
+                --gray-600: #94a3b8;
+                --gray-700: #e2e8f0;
+                --gray-800: #f1f5f9;
+            }
+            body {
+                color: var(--dark);
+                background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
+            }
+            .main-card, .table, .form-input, .form-select {
+                background: var(--light);
+            }
+            .card-header {
+                background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
+            }
+            .table th {
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            }
+            .form-label, .table td {
+                color: var(--dark);
+            }
+            .stat-value {
+                color: var(--info);
+            }
+            .stat-label {
+                color: var(--gray-300);
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .btn, .search-container, .form-container, .stats-grid, .offline-indicator, .loading-overlay, .form-grid {
+                display: none;
+            }
+
+            .main-card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+            .table-container {
+                padding: 0;
+            }
+            .table th, .table td {
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+    <div class="container">
+        <header class="header">
+            <h1>🩸 Registro de Glicemia</h1>
+            <p>Sistema moderno com analise de dados para controle glicêmico</p>
+        </header>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-records">0</div>
+                <div class="stat-label">Total de Registros</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avg-glucose">0</div>
+                <div class="stat-label">Média Glicêmica</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="filtered-avg">0</div>
+                <div class="stat-label">Média Filtrada</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-record">-</div>
+                <div class="stat-label">Último Registro</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="pending-sync">0</div>
+                <div class="stat-label">Pendentes Sync</div>
+            </div>
+        </div>
+
+        <div class="sync-status" id="sync-status">
+            ⏸️ Sincronização pausada
+        </div>
+
+        <div class="main-card">
+            <div class="card-header">
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="filterInput" placeholder="Pesquisar registros..." onkeyup="filtrarRegistros()">
+                    <button class="btn btn-info" onclick="limparFiltro()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding: 8px 12px; font-size: 12px;">
+                        🗑️ Limpar
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                </div>
+                <table class="table" id="tabela-registros">
+                    <thead>
+                        <tr>
+                            <th>📅 Data</th>
+                            <th>🕐 Hora</th>
+                            <th>⏰ Momento</th>
+                            <th>🌡️ Febre</th>
+                            <th>🩸 Dextro</th>
+                            <th>🔄 Status</th>
+                            <th>⚙️ Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="form-container">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="data">📅 Data</label>
+                        <input type="date" class="form-input" id="data">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="hora">🕐 Hora</label>
+                        <input type="time" class="form-input" id="hora">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="momento">⏰ Momento</label>
+                        <select class="form-select" id="momento">
+                            <option value="Jejum">🌅 Jejum</option>
+                            <option value="Antes do café">☕ Antes do café</option>
+                            <option value="Depois do café">☕ Depois do café</option>
+                            <option value="Antes do Almoço">🍽️ Antes do Almoço</option>
+                            <option value="Depois do Almoço">🍽️ Depois do Almoço</option>
+                            <option value="Antes do jantar">🍽️ Antes do jantar</option>
+                            <option value="Depois do jantar">🍽️ Depois do jantar</option>
+                            <option value="Madrugada">🌙 Madrugada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="febre">🌡️ Febre</label>
+                        <select class="form-select" id="febre">
+                            <option value="Não">❌ Não</option>
+                            <option value="Sim">✅ Sim</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dextro">🩸 Dextro (mg/dL)</label>
+                        <input type="number" class="form-input" id="dextro" min="0" max="999" placeholder="Ex: 120">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="adicionarRegistro()">
+                        ➕ Adicionar Registro
+                    </button>
+                    <button class="btn btn-info" onclick="sincronizarIncrementalComGoogleSheets()">
+                        🔄 Sync Incremental
+                    </button>
+                    <br>
+                    <button class="btn btn-primary" onclick="abrirAnalises()">
+                        📊 Ver Análises
+                    </button>
+                    <button class="btn btn-warning" onclick="imprimirTabela()">
+                        🖨️ Imprimir
+                    </button>
+                    <button class="btn btn-info" onclick="carregarDadosDoGoogleSheets()">
+                        📥 Carregar do Google
+                    </button>
+                    <button class="btn btn-success" onclick="exportarDados()">
+                        💾 Exportar Dados
+                    </button>
+                    <button class="btn btn-info" onclick="importarDados()">
+                        📂 Importar Dados
+                    </button>
+                    <button class="btn btn-danger" onclick="limparTodosDados()">
+                        🗑️ Limpar Tudo
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Botão flutuante para toggle do formulário -->
+        <button class="form-toggle" id="form-toggle" onclick="toggleFormulario()">
+            ➕
+        </button>
+    </div>
+    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="carregarArquivo(event)">
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Defina a URL do seu Apps Script e o token de segurança aqui.
+        const GOOGLE_SHEETS_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrLRhFKsAzB4i-x5A830YU-Vwc4FfeaCqu2KhG3JAWbNJ9a03X7z-e934coIAsftgZ/exec';
+        const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; // <-- O MESMO TOKEN DO APPS SCRIPT AQUI
+
+        // Sistema de controle de sincronização
+        let registrosSincronizados = new Set();
+        let ultimaSincronizacao = null;
+
+        function gerarIdUnico() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function toggleFormulario() {
+            const formContainer = document.querySelector('.form-container');
+            const toggleButton = document.getElementById('form-toggle');
+            
+            formContainer.classList.toggle('active');
+            toggleButton.classList.toggle('active');
+            
+            if (formContainer.classList.contains('active')) {
+                toggleButton.textContent = '✖️';
+                // Scroll suave para o formulário
+                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                toggleButton.textContent = '➕';
+            }
+        }
+
+        function adicionarRegistro() {
+            const tabela = document.querySelector("#tabela-registros tbody");
+            const dataInput = document.getElementById("data");
+            const horaInput = document.getElementById("hora");
+            const momentoInput = document.getElementById("momento");
+            const febreInput = document.getElementById("febre");
+            const dextroInput = document.getElementById("dextro");
+
+            let data = dataInput.value || new Date().toISOString().slice(0, 10);
+            let hora = horaInput.value || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (!dextroInput.value) {
+                alert("Por favor, preencha o campo dextro.");
+                return;
+            }
+
+            const novaLinha = document.createElement("tr");
+            const dextroValue = parseInt(dextroInput.value);
+            const badgeClass = (dextroValue > 140) ? 'badge-danger' : 'badge-success';
+            const idUnico = gerarIdUnico();
+
+            novaLinha.innerHTML = `
+                <td title='${obterDiaDaSemana(data)}' data-tooltip='${data + ' ' + obterDiaDaSemana(data)}' class='linkfortooltip'>${data}</td>
+                <td>${hora}</td>
+                <td>${momentoInput.value}</td>
+                <td>${febreInput.value}</td>
+                <td><span class="badge ${badgeClass}">${dextroValue}</span></td>
+                <td data-id="${idUnico}"><span class="badge badge-warning">⏳ Pendente</span></td>
+                <td><button class="btn btn-danger" title="Remover" onclick="removerRegistro(this)">X</button></td>
+            `;
+
+            tabela.appendChild(novaLinha);
+            classificarTabelaPorDataHora(tabela);
+            salvarNoLocalStorage();
+            adicionarListenerMap();
+            atualizarStatusSincronizacao();
+            
+            // Limpa o formulário e o fecha após adicionar
+            document.getElementById("data").value = "";
+            document.getElementById("hora").value = "";
+            document.getElementById("momento").selectedIndex = 0;
+            document.getElementById("febre").selectedIndex = 0;
+            document.getElementById("dextro").value = "";
+            
+            // Fecha o formulário automaticamente em mobile
+            if (window.innerWidth <= 428) {
+                toggleFormulario();
+            }
+        }
+
+        function removerRegistro(botao) {
+            if (confirm("Tem certeza de que deseja remover este registro?")) {
+                const linha = botao.parentElement.parentElement;
+                const idRegistro = linha.querySelector('td[data-id]').getAttribute('data-id');
+                
+                // Remove da lista de sincronizados se estiver lá
+                registrosSincronizados.delete(idRegistro);
+                
+                linha.remove();
+                salvarNoLocalStorage();
+                atualizarStatusSincronizacao();
+            }
+        }
+
+        function classificarTabelaPorDataHora(tabela) {
+            const linhas = Array.from(tabela.rows).filter(row => row.rowIndex > 0);
+            linhas.sort((a, b) => {
+                const dataHoraA = new Date(a.cells[0].textContent + ' ' + a.cells[1].textContent);
+                const dataHoraB = new Date(b.cells[0].textContent + ' ' + b.cells[1].textContent);
+                return dataHoraA - dataHoraB;
+            });
+            linhas.forEach(linha => tabela.appendChild(linha));
+        }
+
+        function salvarNoLocalStorage() {
+            const registros = [];
+            const linhas = document.querySelectorAll("#tabela-registros tbody tr");
+
+            linhas.forEach(linha => {
+                const colunas = linha.querySelectorAll("td");
+                const idRegistro = colunas[5].getAttribute('data-id');
+                
+                registros.push({
+                    id: idRegistro,
+                    data: colunas[0].textContent,
+                    hora: colunas[1].textContent,
+                    momento: colunas[2].textContent,
+                    febre: colunas[3].textContent,
+                    dextro: colunas[4].textContent.replace(/\s+/g, ''),
+                    sincronizado: registrosSincronizados.has(idRegistro)
+                });
+            });
+            
+            localStorage.setItem("registrosGlicemia", JSON.stringify(registros));
+            localStorage.setItem("registrosSincronizados", JSON.stringify([...registrosSincronizados]));
+            if (ultimaSincronizacao) {
+                localStorage.setItem("ultimaSincronizacao", ultimaSincronizacao);
+            }
+            atualizarEstatisticas();
+        }
+
+        function carregarDoLocalStorage() {
+            const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
+            const sincronizados = JSON.parse(localStorage.getItem("registrosSincronizados")) || [];
+            const ultimaSync = localStorage.getItem("ultimaSincronizacao");
+            
+            registrosSincronizados = new Set(sincronizados);
+            ultimaSincronizacao = ultimaSync;
+            
+            const tabela = document.querySelector("#tabela-registros tbody");
+            tabela.innerHTML = '';
+            
+            registros.forEach(registro => {
+                const novaLinha = document.createElement("tr");
+                const strtool = registro.data + ' ' + obterDiaDaSemana(registro.data);
+                const dextroValue = parseInt(registro.dextro);
+                const dextroNum = parseInt(dextroValue);
+                const badgeClass = dextroNum > 250 ? 'badge-critical' :
+                   dextroNum > 180 ? 'badge-danger' :
+                   dextroNum > 140 ? 'badge-warning' :
+                   dextroNum > 70 ? 'badge-success' : 'badge-low';
+
+                const statusBadge = registro.sincronizado ? 
+                    '<span class="badge badge-success">✅ Sincronizado</span>' : 
+                    '<span class="badge badge-warning">⏳ Pendente</span>';
+
+                novaLinha.innerHTML = `
+                    <td title='${obterDiaDaSemana(registro.data)}' data-tooltip='${strtool}' class='linkfortooltip'>${registro.data}</td>
+                    <td>${registro.hora}</td>
+                    <td>${registro.momento}</td>
+                    <td>${registro.febre}</td>
+                    <td><span class="badge ${badgeClass}">${registro.dextro}</span></td>
+                    <td data-id="${registro.id}">${statusBadge}</td>
+                    <td><button class="btn btn-danger btn-sm" title="Remover" onclick="removerRegistro(this)">X</button></td>
+                `;
+                tabela.appendChild(novaLinha);
+            });
+            
+            classificarTabelaPorDataHora(tabela);
+            adicionarListenerMap();
+            atualizarEstatisticas();
+            atualizarStatusSincronizacao();
+        }
+
+        function obterRegistrosPendentes() {
+            const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
+            return registros.filter(registro => !registrosSincronizados.has(registro.id));
+        }
+
+        async function sincronizarIncrementalComGoogleSheets() {
+            if (GOOGLE_SHEETS_APP_SCRIPT_URL === '') {
+                alert('Atenção: Você precisa configurar a integração com o Google Sheets primeiro!');
+                return;
+            }
+
+            const registrosPendentes = obterRegistrosPendentes();
+
+            if (registrosPendentes.length === 0) {
+                alert('Não há registros pendentes para sincronizar.');
+                return;
+            }
+
+            if (!confirm(`Isso irá enviar apenas ${registrosPendentes.length} registros novos/não sincronizados para o Google Sheets. Deseja continuar?`)) {
+                return;
+            }
+
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.display = 'flex';
+            atualizarStatusSincronizacao('syncing');
+
+            try {
+                const jsonString = JSON.stringify(registrosPendentes);
+                const chunkSize = 1500;
+                const totalChunks = Math.ceil(jsonString.length / chunkSize);
+
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * chunkSize;
+                    const end = start + chunkSize;
+                    const chunk = jsonString.substring(start, end);
+
+                    const params = new URLSearchParams();
+                    params.append('chunk', chunk);
+                    params.append('chunkIndex', i);
+                    params.append('totalChunks', totalChunks);
+                    params.append('token', TOKEN_SECRETO);
+                    params.append('incremental', 'true'); // Flag para sincronização incremental
+                    params.append('idsJaSincronizados', JSON.stringify([...registrosSincronizados])); // Envia IDs já sincronizados
+
+                    const urlComDados = `${GOOGLE_SHEETS_APP_SCRIPT_URL}?${params.toString()}`;
+
+                    console.log(`Enviando parte ${i + 1} de ${totalChunks}...`);
+                    const response = await fetch(urlComDados, {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status !== 'success') {
+                        throw new Error(`Erro na parte ${i + 1}: ${result.message}`);
+                    }
+                }
+
+                // Marca os registros como sincronizados
+                registrosPendentes.forEach(registro => {
+                    registrosSincronizados.add(registro.id);
+                });
+
+                ultimaSincronizacao = new Date().toISOString();
+                salvarNoLocalStorage();
+                carregarDoLocalStorage(); // Recarrega para atualizar os status
+                
+                atualizarStatusSincronizacao('synced');
+                alert(`${registrosPendentes.length} registros sincronizados com sucesso!`);
+            } catch (error) {
+                console.error('Erro na sincronização:', error);
+                atualizarStatusSincronizacao('error');
+                alert(`Erro ao sincronizar dados: ${error.message}`);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        async function carregarDadosDoGoogleSheets() {
+            if (GOOGLE_SHEETS_APP_SCRIPT_URL === '') {
+                alert('Atenção: Você precisa configurar a integração com o Google Sheets primeiro!');
+                return;
+            }
+
+            if (!confirm('Isso irá substituir todos os dados locais pelos dados do Google Sheets. Deseja continuar?')) {
+                return;
+            }
+
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const url = `${GOOGLE_SHEETS_APP_SCRIPT_URL}?token=${TOKEN_SECRETO}&carregarPlanilha=true`;
+                const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                const result = await response.json();
+
+                if (result.status !== 'success') {
+                    throw new Error(result.message);
+                }
+
+                // Converte os dados do Google Sheets para o formato local com IDs únicos
+                const registrosComId = result.data.map(registro => ({
+                    ...registro,
+                    id: gerarIdUnico(),
+                    sincronizado: true
+                }));
+
+                // Marca todos como sincronizados
+                registrosSincronizados = new Set(registrosComId.map(r => r.id));
+                ultimaSincronizacao = new Date().toISOString();
+
+                localStorage.setItem("registrosGlicemia", JSON.stringify(registrosComId));
+                localStorage.setItem("registrosSincronizados", JSON.stringify([...registrosSincronizados]));
+                localStorage.setItem("ultimaSincronizacao", ultimaSincronizacao);
+
+                carregarDoLocalStorage();
+                alert(`${registrosComId.length} registros carregados do Google Sheets com sucesso!`);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                alert(`Erro ao carregar dados do Google Sheets: ${error.message}`);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function atualizarStatusSincronizacao(status = null) {
+            const statusElement = document.getElementById('sync-status');
+            const pendingSyncElement = document.getElementById('pending-sync');
+            const registrosPendentes = obterRegistrosPendentes();
+            
+            pendingSyncElement.textContent = registrosPendentes.length;
+
+            if (status === 'syncing') {
+                statusElement.className = 'sync-status pending';
+                statusElement.textContent = '🔄 Sincronizando...';
+            } else if (status === 'synced') {
+                statusElement.className = 'sync-status synced';
+                statusElement.textContent = '✅ Sincronizado';
+            } else if (status === 'error') {
+                statusElement.className = 'sync-status error';
+                statusElement.textContent = '❌ Erro na sincronização';
+            } else {
+                if (registrosPendentes.length > 0) {
+                    statusElement.className = 'sync-status pending';
+                    statusElement.textContent = `⏳ ${registrosPendentes.length} registro(s) pendente(s)`;
+                } else if (ultimaSincronizacao) {
+                    statusElement.className = 'sync-status synced';
+                    const dataSync = new Date(ultimaSincronizacao).toLocaleString('pt-BR');
+                    statusElement.textContent = `✅ Última sync: ${dataSync}`;
+                } else {
+                    statusElement.className = 'sync-status pending';
+                    statusElement.textContent = '⏸️ Nunca sincronizado';
+                }
+            }
+        }
+
+        function exportarDados() {
+            const registros = localStorage.getItem("registrosGlicemia");
+            const blob = new Blob([registros], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "dados_glicemia.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importarDados() {
+            const inputFile = document.getElementById("import-file");
+            inputFile.click();
+        }
+
+        function carregarArquivo(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const registros = JSON.parse(e.target.result);
+                
+                // Adiciona IDs únicos aos registros importados se não tiverem
+                const registrosComId = registros.map(registro => ({
+                    ...registro,
+                    id: registro.id || gerarIdUnico(),
+                    sincronizado: registro.sincronizado || false
+                }));
+
+                localStorage.setItem("registrosGlicemia", JSON.stringify(registrosComId));
+                
+                // Atualiza a lista de sincronizados
+                registrosSincronizados = new Set(
+                    registrosComId
+                        .filter(r => r.sincronizado)
+                        .map(r => r.id)
+                );
+                localStorage.setItem("registrosSincronizados", JSON.stringify([...registrosSincronizados]));
+                
+                location.reload();
+            };
+
+            reader.readAsText(file);
+        }
+
+        function filtrarRegistros() {
+            const input = document.getElementById('filterInput');
+            const filter = input.value.toLowerCase();
+            const tabela = document.getElementById('tabela-registros');
+            const tr = tabela.getElementsByTagName('tr');
+            let registrosVisiveis = [];
+            let totalVisiveis = 0;
+
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName('td');
+                let rowContainsFilter = false;
+
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            rowContainsFilter = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (rowContainsFilter) {
+                    tr[i].style.display = "";
+                    totalVisiveis++;
+                    
+                    // Extrai o valor do dextro da linha visível
+                    const dextroCell = td[4]; // Coluna do dextro
+                    if (dextroCell) {
+                        const dextroText = dextroCell.textContent || dextroCell.innerText;
+                        const dextroValue = parseInt(dextroText.replace(/\D/g, '')); // Remove tudo que não é número
+                        if (!isNaN(dextroValue)) {
+                            registrosVisiveis.push(dextroValue);
+                        }
+                    }
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+
+            // Atualiza as estatísticas dos registros filtrados
+            atualizarEstatisticasFiltradas(registrosVisiveis, totalVisiveis);
+        }
+
+        function atualizarEstatisticasFiltradas(valoresDextro, totalVisiveis) {
+            const filteredCountEl = document.getElementById("total-records");
+            const filteredAvgEl = document.getElementById("filtered-avg");
+
+            // Atualiza contador de registros visíveis
+            const totalRegistros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
+            filteredCountEl.textContent = `${totalVisiveis}/${totalRegistros.length}`;
+
+            // Calcula e atualiza média dos registros filtrados
+            if (valoresDextro.length > 0) {
+                const soma = valoresDextro.reduce((acc, valor) => acc + valor, 0);
+                const mediaFiltrada = (soma / valoresDextro.length).toFixed(0);
+                filteredAvgEl.textContent = mediaFiltrada;
+                
+                // Adiciona indicador visual se a média filtrada for diferente da geral
+                const mediaGeral = parseInt(document.getElementById("avg-glucose").textContent);
+                if (parseInt(mediaFiltrada) !== mediaGeral) {
+                    filteredAvgEl.style.color = 'var(--warning)';
+                } else {
+                    filteredAvgEl.style.color = 'var(--primary)';
+                }
+            } else {
+                filteredAvgEl.textContent = "0";
+                filteredAvgEl.style.color = 'var(--primary)';
+            }
+        }
+
+        function limparFiltro() {
+            const input = document.getElementById('filterInput');
+            input.value = '';
+            filtrarRegistros(); // Reaplica o filtro vazio
+        }
+        
+        function imprimirTabela() {
+            window.print();
+        }
+        
+        function abrirAnalises() {
+            window.open('data_cientist.html', '_blank');
+        }
+        function limparTodosDados() {
+            if (confirm("ATENÇÃO: Esta ação irá apagar TODOS os registros salvos no seu navegador. Tem certeza que deseja continuar?")) {
+                localStorage.removeItem("registrosGlicemia");
+                localStorage.removeItem("registrosSincronizados");
+                localStorage.removeItem("ultimaSincronizacao");
+                registrosSincronizados.clear();
+                ultimaSincronizacao = null;
+                carregarDoLocalStorage();
+                alert("Todos os dados foram apagados com sucesso!");
+            }
+        }
+        
+        function obterDiaDaSemana(dataString) {
+            const data = new Date(dataString + 'T00:00:00');
+            const diasDaSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+            return diasDaSemana[data.getDay()];
+        }
+        
+        function mostrarTooltip(event) {
+            const tooltip = document.getElementById('tooltip');
+            const mensagem = event.getAttribute('data-tooltip');
+            tooltip.textContent = mensagem;
+
+            const rect = event.getBoundingClientRect();
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            tooltip.style.top = rect.bottom + scrollTop + 'px';
+            tooltip.style.left = rect.left + scrollLeft + 'px';
+            tooltip.style.display = 'block';
+
+            document.addEventListener('click', function esconderTooltip(e) {
+                if (!event.contains(e.target) && e.target !== tooltip) {
+                    tooltip.style.display = 'none';
+                    document.removeEventListener('click', esconderTooltip);
+                }
+            });
+        }
+
+        function adicionarListenerMap() {
+            const eletooltip = document.querySelectorAll('.linkfortooltip');
+            eletooltip.forEach(elemento => {
+                elemento.addEventListener('click', function() {
+                    mostrarTooltip(elemento);
+                });
+            });
+        }
+
+        function atualizarEstatisticas() {
+            const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
+            const totalRecordsEl = document.getElementById("total-records");
+            const avgGlucoseEl = document.getElementById("avg-glucose");
+            const lastRecordEl = document.getElementById("last-record");
+
+            totalRecordsEl.textContent = registros.length;
+
+            if (registros.length > 0) {
+                const sum = registros.reduce((acc, curr) => acc + parseInt(curr.dextro), 0);
+                const avg = (sum / registros.length).toFixed(0);
+                avgGlucoseEl.textContent = avg;
+
+                const last = registros[registros.length - 1];
+                lastRecordEl.textContent = `${last.dextro} mg/dL`;
+            } else {
+                avgGlucoseEl.textContent = "0";
+                lastRecordEl.textContent = "-";
+            }
+            
+            // Inicializa as estatísticas filtradas (mostra todas inicialmente)
+            const valoresDextro = registros.map(r => parseInt(r.dextro));
+            atualizarEstatisticasFiltradas(valoresDextro, registros.length);
+        }
+
+        // Carregar registros ao carregar a página
+        window.onload = carregarDoLocalStorage;
+    </script>
+</body>
+</html>
+
+<script>
+// Codigo do backendo para googleSheets
+
+/*
+const SPREADSHEET_ID = '1piKVRQ0IkW890K3eYVFh-Z-xW4LyeZoAl231cFtibpo'; 
+const SHEET_NAME = 'glisemia'; 
+const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; 
+
+function doGet(e) {
+    try {
+        const token = e.parameter.token;
+
+        if (token !== TOKEN_SECRETO) {
+            return ContentService.createTextOutput(JSON.stringify({
+                status: 'error',
+                message: 'Token de segurança inválido.'
+            })).setMimeType(ContentService.MimeType.JSON);
+        }
+
+        // --- Lógica para carregar os dados da planilha ---
+        if (e.parameter.carregarPlanilha === 'true') {
+            const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+            if (!sheet) {
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'error',
+                    message: 'Aba não encontrada.'
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+
+            const lastRow = sheet.getLastRow();
+            if (lastRow <= 1) {
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'success',
+                    message: 'Planilha vazia.',
+                    data: []
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+
+            const range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+            const values = range.getValues();
+
+            const registros = values.map(row => ({
+                data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
+                hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
+                momento: row[2].toString().trim().toUpperCase(),
+                febre: row[3].toString().trim().toUpperCase(),
+                dextro: parseInt(row[4]).toString()
+            }));
+
+            return ContentService.createTextOutput(JSON.stringify({
+                status: 'success',
+                message: 'Dados carregados com sucesso.',
+                data: registros
+            })).setMimeType(ContentService.MimeType.JSON);
+        }
+        // --- Fim da lógica para carregar os dados ---
+
+        // --- Lógica para sincronização incremental em chunks ---
+        const chunk = e.parameter.chunk;
+        if (chunk) {
+            const chunkIndex = parseInt(e.parameter.chunkIndex);
+            const totalChunks = parseInt(e.parameter.totalChunks);
+            const isIncremental = e.parameter.incremental === 'true';
+            const cache = CacheService.getUserCache();
+            const cacheKey = `sync_data_${TOKEN_SECRETO}`;
+
+            let cachedData = cache.get(cacheKey);
+            let dataChunks = cachedData ? JSON.parse(cachedData) : [];
+
+            dataChunks[chunkIndex] = chunk;
+            cache.put(cacheKey, JSON.stringify(dataChunks), 600);
+
+            // Verifica se todos os chunks foram recebidos
+            if (dataChunks.length === totalChunks && !dataChunks.includes(null)) {
+                const fullJsonString = dataChunks.join('');
+                const registros = JSON.parse(fullJsonString);
+
+                const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+                if (!sheet) {
+                    return ContentService.createTextOutput(JSON.stringify({
+                        status: 'error',
+                        message: `Aba "${SHEET_NAME}" não encontrada.`
+                    })).setMimeType(ContentService.MimeType.JSON);
+                }
+
+                let dadosAdicionados = 0;
+
+                if (isIncremental) {
+                    // SINCRONIZAÇÃO INCREMENTAL: Verifica duplicatas antes de adicionar
+                    const lastRow = sheet.getLastRow();
+                    let registrosExistentes = [];
+                    
+                    if (lastRow > 1) {
+                        const range = sheet.getRange(2, 1, lastRow - 1, 5);
+                        const values = range.getValues();
+                        registrosExistentes = values.map(row => ({
+                            data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
+                            hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
+                            momento: row[2].toString().trim().toUpperCase(),
+                            febre: row[3].toString().trim().toUpperCase(),
+                            dextro: parseInt(row[4]).toString()
+                        }));
+                    }
+
+                    // Filtra apenas registros que NÃO existem na planilha
+                    const registrosNovos = registros.filter(novoRegistro => {
+                        return !registrosExistentes.some(existente => 
+                            existente.data === novoRegistro.data.trim() &&
+                            existente.hora === novoRegistro.hora.trim() &&
+                            existente.momento === novoRegistro.momento.trim().toUpperCase() &&
+                            existente.febre === novoRegistro.febre.trim().toUpperCase() &&
+                            existente.dextro === parseInt(novoRegistro.dextro).toString()
+                        );
+                    });
+
+                    const dadosParaAdicionar = registrosNovos.map(registro => [
+                        registro.data.trim(),
+                        registro.hora.trim(),
+                        registro.momento.trim().toUpperCase(),
+                        registro.febre.trim().toUpperCase(),
+                        parseInt(registro.dextro)
+                    ]);
+
+                    if (dadosParaAdicionar.length > 0) {
+                        const startRow = sheet.getLastRow() + 1;
+                        sheet.getRange(startRow, 1, dadosParaAdicionar.length, dadosParaAdicionar[0].length).setValues(dadosParaAdicionar);
+                        dadosAdicionados = dadosParaAdicionar.length;
+                        
+                        // Ordena os dados por data e hora
+                        if (sheet.getLastRow() > 2) {
+                            const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+                            dataRange.sort([{column: 1, ascending: true}, {column: 2, ascending: true}]);
+                        }
+                    }
+                } else {
+                    // SINCRONIZAÇÃO COMPLETA: Limpa tudo e adiciona
+                    const lastRow = sheet.getLastRow();
+                    if (lastRow > 1) {
+                        sheet.deleteRows(2, lastRow - 1);
+                    }
+
+                    const dadosParaAdicionar = registros.map(registro => [
+                        registro.data.trim(),
+                        registro.hora.trim(),
+                        registro.momento.trim().toUpperCase(),
+                        registro.febre.trim().toUpperCase(),
+                        parseInt(registro.dextro)
+                    ]);
+
+                    if (dadosParaAdicionar.length > 0) {
+                        // Verifica se já existe um cabeçalho
+                        if (sheet.getLastRow() === 0) {
+                            sheet.getRange(1, 1, 1, 5).setValues([['Data', 'Hora', 'Momento', 'Febre', 'Dextro']]);
+                        }
+
+                        const startRow = sheet.getLastRow() + 1;
+                        sheet.getRange(startRow, 1, dadosParaAdicionar.length, dadosParaAdicionar[0].length).setValues(dadosParaAdicionar);
+                        dadosAdicionados = dadosParaAdicionar.length;
+                        
+                        // Ordena os dados por data e hora
+                        if (sheet.getLastRow() > 2) {
+                            const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+                            dataRange.sort([{column: 1, ascending: true}, {column: 2, ascending: true}]);
+                        }
+                    }
+                }
+
+                cache.remove(cacheKey);
+
+                const tipoSync = isIncremental ? 'incremental' : 'completa';
+                const totalEnviados = registros.length;
+                
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'success',
+                    message: `Sincronização ${tipoSync}: ${dadosAdicionados} novos registros adicionados (${totalEnviados - dadosAdicionados} já existiam).`
+                })).setMimeType(ContentService.MimeType.JSON);
+            } else {
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'success',
+                    message: `Parte ${chunkIndex + 1} de ${totalChunks} recebida. Aguardando outras partes.`
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+        }
+        // --- Fim da lógica de chunks ---
+
+        // --- Lógica para limpar a planilha (mantida para compatibilidade) ---
+        if (e.parameter.limparPlanilha === 'true') {
+            const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+            if (!sheet) {
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'error',
+                    message: 'Aba não encontrada.'
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+
+            const lastRow = sheet.getLastRow();
+            if (lastRow > 1) {
+                sheet.deleteRows(2, lastRow - 1);
+            }
+
+            return ContentService.createTextOutput(JSON.stringify({
+                status: 'success',
+                message: 'Planilha limpa com sucesso.'
+            })).setMimeType(ContentService.MimeType.JSON);
+        }
+        // --- Fim da lógica para limpar a planilha ---
+
+        // --- Lógica para verificar status da planilha (nova funcionalidade) ---
+        if (e.parameter.verificarStatus === 'true') {
+            const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+            if (!sheet) {
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: 'error',
+                    message: 'Aba não encontrada.'
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+
+            const lastRow = sheet.getLastRow();
+            const totalRegistros = lastRow > 1 ? lastRow - 1 : 0;
+            
+            // Pega os últimos 5 registros para verificação
+            let ultimosRegistros = [];
+            if (totalRegistros > 0) {
+                const startRow = Math.max(2, lastRow - 4);
+                const numRows = lastRow - startRow + 1;
+                const range = sheet.getRange(startRow, 1, numRows, 5);
+                const values = range.getValues();
+                
+                ultimosRegistros = values.map(row => ({
+                    data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
+                    hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
+                    dextro: parseInt(row[4])
+                }));
+            }
+
+            return ContentService.createTextOutput(JSON.stringify({
+                status: 'success',
+                message: 'Status verificado com sucesso.',
+                data: {
+                    totalRegistros: totalRegistros,
+                    ultimosRegistros: ultimosRegistros,
+                    ultimaAtualizacao: Utilities.formatDate(new Date(), "GMT-3", "yyyy-MM-dd HH:mm:ss")
+                }
+            })).setMimeType(ContentService.MimeType.JSON);
+        }
+        // --- Fim da verificação de status ---
+
+        return ContentService.createTextOutput(JSON.stringify({
+            status: 'error',
+            message: 'Requisição GET inválida. Parâmetros suportados: carregarPlanilha, limparPlanilha, verificarStatus, ou dados para sincronização.'
+        })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+        Logger.log('Erro no doGet: ' + error.toString());
+        return ContentService.createTextOutput(JSON.stringify({
+            status: 'error',
+            message: 'Erro interno do servidor: ' + error.toString()
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
+}
+*/
+</script>

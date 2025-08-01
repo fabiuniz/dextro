@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Análise de Glicemia</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+          .responsive-width {
+                width: 95%;
+                margin: 0 auto 20px auto; /* Centraliza a div e mantém a margem inferior */
+                margin-left: 0px;
+            }
+        }
+
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            grid-column: 1 / -1;
+            margin-bottom: 0;
+        }
+        
+        .header-stats-container {
+            
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            text-align: center;
+            /*padding: 10px;*/
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .header-stats-container .stat-item {
+            padding: 5px 10px;
+        }
+
+        .header-stats-container .stat-item h3 {
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: normal;
+        }
+
+        .header-stats-container .stat-item span {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .header-stats-container .stat-item small {
+            font-size: 0.8em;
+            display: block;
+        }
+
+        .chart-container {
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .no-data-message {
+            text-align: center;
+            color: #6c757d;
+            font-size: 1.2em;
+            grid-column: 1 / -1;
+        }
+
+        .analysis-section {
+            grid-column: 1 / -1;
+        }
+        
+        .analysis-section h2 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+            color: #007bff;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-details {
+            font-size: 1.1em;
+            line-height: 1.8;
+        }
+
+        .stat-details strong {
+            color: #007bff;
+        }   
+        
+        .back-button-container {
+            grid-column: 1 / -1;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background-color: #5a6268;
+        }
+
+        #recomendacoes-lista li {
+            margin-bottom: 10px;
+        }
+
+        .search-bar-container {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar-container input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .search-bar-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-bar-container button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Dashboard de Análise de Glicemia</h1>
+
+        <div class="back-button-container">
+            <a href="#" class="back-button" onclick="window.history.back()">← Voltar</a>
+        </div>
+
+        <div class="search-bar-container">
+            <input type="text" id="search-input" placeholder="Pesquisar por data (AAAA-MM-DD), momento ou glicemia">
+            <button id="search-button">Pesquisar</button>
+            <button id="clear-search-button">Limpar</button>
+        </div>
+
+        <div class="header-stats-container responsive-width">
+            <div class="stat-item">
+                <h3>Total de Registros</h3>
+                <span id="total-registros">0</span>
+            </div>
+            <div class="stat-item">
+                <h3>Média de Glicose</h3>
+                <span id="media-glicose">0</span>
+                <small>mg/dL</small>
+            </div>
+            <div class="stat-item">
+                <h3>Último Registro</h3>
+                <span id="ultimo-registro">N/A</span>
+                <small>mg/dL</small>
+            </div>
+        </div>
+
+        <div class="analysis-section responsive-width">
+            <h2>Evolução e Distribuição</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3>Evolução da Glicemia</h3>
+                    <div class="chart-container">
+                        <canvas id="grafico-glicemia"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Registros por Momento do Dia</h3>
+                    <div class="chart-container">
+                        <canvas id="grafico-momentos"></canvas>
+                    </div>
+                </div>
+                 <div class="card">
+                    <h3>Distribuição dos Valores</h3>
+                    <div class="chart-container"><canvas id="grafico-histograma"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-section responsive-width">
+            <h2>Análise Descritiva e Sazonalidade</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3>Estatísticas Principais</h3>
+                    <div class="stat-details">
+                        <p><strong>Mediana:</strong> <span id="mediana">0</span> mg/dL</p>
+                        <p><strong>Desvio Padrão:</strong> <span id="desvio-padrao">0</span> mg/dL</p>
+                        <p><strong>Valor Mínimo:</strong> <span id="minimo">0</span> mg/dL</p>
+                        <p><strong>Valor Máximo:</strong> <span id="maximo">0</span> mg/dL</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Sazonalidade (Média por Dia)</h3>
+                    <div class="chart-container"><canvas id="grafico-sazonalidade-dia"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>Média por Momento do Dia</h3>
+                    <div class="chart-container"><canvas id="grafico-momentos-media"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-section responsive-width">
+            <h2>Análise Diagnóstica, Preditiva e Recomendações</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3>Registros Anormais</h3>
+                    <p><strong>Picos (Hiperglicemia > 180):</strong> <span id="picos">0</span> registro(s)</p>
+                    <p><strong>Vales (Hipoglicemia < 70):</strong> <span id="vales">0</span> registro(s)</p>
+                    <p id="diagnostico-info"></p>
+                </div>
+                <div class="card">
+                    <h3>Tendência de Curto Prazo</h3>
+                    <div class="chart-container"><canvas id="grafico-curto-prazo"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>Recomendações</h3>
+                    <ul id="recomendacoes-lista">
+                        </ul>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        let allRegistros = []; // Armazenar todos os registros originais
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dadosString = localStorage.getItem('registrosGlicemia');
+            if (!dadosString) {
+                document.querySelector('.container').innerHTML = '<div class="no-data-message">Nenhum dado de glicemia encontrado. Adicione registros para ver as análises.</div>';
+                return;
+            }
+
+            allRegistros = JSON.parse(dadosString);
+            
+            if (allRegistros.length < 5) {
+                document.querySelector('.container').innerHTML = '<div class="no-data-message">É necessário um mínimo de 5 registros para gerar as análises.</div>';
+                return;
+            }
+            
+            // Inicia o dashboard com todos os registros
+            renderDashboard(allRegistros);
+
+            // Adiciona event listeners para a barra de pesquisa
+            document.getElementById('search-button').addEventListener('click', filterAndRender);
+            document.getElementById('clear-search-button').addEventListener('click', () => {
+                document.getElementById('search-input').value = '';
+                renderDashboard(allRegistros);
+            });
+            document.getElementById('search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    filterAndRender();
+                }
+            });
+        });
+
+        function filterAndRender() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            if (searchTerm === '') {
+                renderDashboard(allRegistros);
+                return;
+            }
+
+            const filteredRegistros = allRegistros.filter(reg => 
+                reg.data.toLowerCase().includes(searchTerm) || 
+                reg.momento.toLowerCase().includes(searchTerm) ||
+                reg.dextro.toLowerCase().includes(searchTerm)
+            );
+
+            renderDashboard(filteredRegistros);
+        }
+
+        function renderDashboard(registros) {
+            if (registros.length === 0) {
+                document.querySelectorAll('.card, .header-stats-container').forEach(el => el.style.display = 'none');
+                document.querySelector('.container').insertAdjacentHTML('beforeend', '<div class="no-data-message">Nenhum registro encontrado para a pesquisa.</div>');
+                return;
+            } else {
+                document.querySelectorAll('.card, .header-stats-container').forEach(el => el.style.display = '');
+                const noDataMessage = document.querySelector('.no-data-message');
+                if (noDataMessage) noDataMessage.remove();
+            }
+
+            const dextroValores = registros.map(reg => parseInt(reg.dextro)).filter(val => !isNaN(val));
+            const registrosOrdenados = [...registros].sort((a, b) => new Date(a.data + 'T' + a.hora) - new Date(b.data + 'T' + b.hora));
+            
+            exibirEstatisticasDescritivas(registros, dextroValores);
+            criarGraficoDeLinha(registrosOrdenados);
+            criarGraficoDePizza(registros);
+            criarGraficoHistograma(dextroValores);
+            analiseSazonalidade(registros);
+            analiseDiagnostica(dextroValores);
+            criarGraficoCurtoPrazo(registrosOrdenados.slice(-10));
+            criarGraficoMediasPorMomento(registros);
+            analisePrescritiva(registros);
+        }
+
+        // --- Funções de Análise e Métricas ---
+
+        function exibirEstatisticasDescritivas(registros, valores) {
+            const total = valores.length;
+            const soma = valores.reduce((acc, curr) => acc + curr, 0);
+            const media = (total > 0 ? (soma / total).toFixed(0) : 0);
+
+            const sortedValores = [...valores].sort((a, b) => a - b);
+            const mid = Math.floor(total / 2);
+            const mediana = total > 0 ? (total % 2 !== 0 ? sortedValores[mid] : (sortedValores[mid - 1] + sortedValores[mid]) / 2) : 0;
+
+            const mediaParaDesvio = total > 0 ? soma / total : 0;
+            const variancia = total > 0 ? valores.reduce((acc, curr) => acc + Math.pow(curr - mediaParaDesvio, 2), 0) / total : 0;
+            const desvioPadrao = Math.sqrt(variancia).toFixed(2);
+
+            const ultimo = registros.length > 0 ? registros[registros.length - 1].dextro : 'N/A';
+
+            document.getElementById('total-registros').textContent = total;
+            document.getElementById('media-glicose').textContent = media;
+            document.getElementById('ultimo-registro').textContent = ultimo;
+            document.getElementById('mediana').textContent = mediana;
+            document.getElementById('desvio-padrao').textContent = desvioPadrao;
+            document.getElementById('minimo').textContent = total > 0 ? Math.min(...valores) : 0;
+            document.getElementById('maximo').textContent = total > 0 ? Math.max(...valores) : 0;
+        }
+
+        function analiseDiagnostica(valores) {
+            const picos = valores.filter(v => v > 180).length;
+            const vales = valores.filter(v => v < 70).length;
+
+            document.getElementById('picos').textContent = picos;
+            document.getElementById('vales').textContent = vales;
+            
+            let info = '';
+            if (picos > 0 && vales === 0) {
+                info = 'Observamos picos de hiperglicemia. Monitore após as refeições e pratique atividade física.';
+            } else if (vales > 0 && picos === 0) {
+                info = 'Valores de hipoglicemia foram detectados. Fique atento aos sintomas e tenha sempre um carboidrato de ação rápida por perto.';
+            } else if (picos > 0 && vales > 0) {
+                info = 'A glicose está instável, com picos e vales. Consulte um profissional de saúde para ajustar o plano de tratamento.';
+            } else {
+                info = 'Os registros estão dentro de uma faixa normal e estável. Ótimo trabalho!';
+            }
+            document.getElementById('diagnostico-info').textContent = info;
+        }
+
+        function analisePrescritiva(registros) {
+            const listaRecomendacoes = document.getElementById('recomendacoes-lista');
+            listaRecomendacoes.innerHTML = '';
+            
+            if (registros.length === 0) {
+                adicionarRecomendacao('Nenhum registro para análise prescritiva.');
+                return;
+            }
+
+            const contagemMomentos = {};
+            registros.forEach(reg => {
+                const momento = reg.momento;
+                contagemMomentos[momento] = (contagemMomentos[momento] || { count: 0, sum: 0 });
+                contagemMomentos[momento].count++;
+                contagemMomentos[momento].sum += parseInt(reg.dextro);
+            });
+            
+            let momentoComMaiorMedia = '';
+            let maiorMedia = 0;
+            
+            for (const momento in contagemMomentos) {
+                const media = contagemMomentos[momento].sum / contagemMomentos[momento].count;
+                if (media > maiorMedia) {
+                    maiorMedia = media;
+                    momentoComMaiorMedia = momento;
+                }
+            }
+
+            const mediaGeral = registros.reduce((acc, reg) => acc + parseInt(reg.dextro), 0) / registros.length;
+            
+            adicionarRecomendacao('Continue monitorando sua glicemia regularmente e compare seus resultados com as metas estabelecidas.');
+
+            if (maiorMedia > mediaGeral * 1.1 && momentoComMaiorMedia) {
+                adicionarRecomendacao(`Sua glicemia média após a **${momentoComMaiorMedia}** é a mais alta. Considere ajustar sua alimentação ou medicação nesse período.`, 'warning');
+            }
+
+            if (registros.filter(r => parseInt(r.dextro) < 70).length > 0) {
+                adicionarRecomendacao('Foram detectados valores de hipoglicemia. Consulte um profissional de saúde sobre os valores alvo.', 'danger');
+            }
+        }
+        
+        function adicionarRecomendacao(texto, tipo = 'info') {
+            const lista = document.getElementById('recomendacoes-lista');
+            const item = document.createElement('li');
+            item.innerHTML = texto;
+            if (tipo === 'warning') item.style.color = '#ffc107';
+            if (tipo === 'danger') item.style.color = '#dc3545';
+            lista.appendChild(item);
+        }
+
+        function analiseSazonalidade(registros) {
+            const mediasPorDia = { 'Domingo': [], 'Segunda': [], 'Terça': [], 'Quarta': [], 'Quinta': [], 'Sexta': [], 'Sábado': [] };
+            
+            registros.forEach(reg => {
+                const data = new Date(reg.data + 'T00:00:00');
+                const diaDaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][data.getDay()];
+                mediasPorDia[diaDaSemana].push(parseInt(reg.dextro));
+            });
+
+            const labels = Object.keys(mediasPorDia);
+            const dados = labels.map(dia => {
+                if (mediasPorDia[dia].length > 0) {
+                    const soma = mediasPorDia[dia].reduce((a, b) => a + b, 0);
+                    return (soma / mediasPorDia[dia].length).toFixed(0);
+                } else {
+                    return 0;
+                }
+            });
+            
+            const ctx = document.getElementById('grafico-sazonalidade-dia').getContext('2d');
+            
+            // Destrói o gráfico anterior, se existir
+            if (window.sazonalidadeChart) {
+                window.sazonalidadeChart.destroy();
+            }
+
+            window.sazonalidadeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Média de Glicemia',
+                        data: dados,
+                        backgroundColor: '#007bff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Glicose (mg/dL)' }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // --- Funções para Gráficos ---
+
+        function criarGraficoDeLinha(registros) {
+            const labels = registros.map(reg => `${reg.data} ${reg.hora}`);
+            const dados = registros.map(reg => parseInt(reg.dextro));
+
+            const ctx = document.getElementById('grafico-glicemia').getContext('2d');
+            if (window.glicemiaChart) {
+                window.glicemiaChart.destroy();
+            }
+            window.glicemiaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nível de Glicose (mg/dL)',
+                        data: dados,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false,
+                            title: {
+                                display: true,
+                                text: 'Registros ao Longo do Tempo'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Glicose (mg/dL)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoDePizza(registros) {
+            const contagemMomentos = {};
+            registros.forEach(reg => {
+                contagemMomentos[reg.momento] = (contagemMomentos[reg.momento] || 0) + 1;
+            });
+
+            const labels = Object.keys(contagemMomentos);
+            const dados = Object.values(contagemMomentos);
+            
+            const cores = [
+                '#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d', '#546E7A'
+            ];
+
+            const ctx = document.getElementById('grafico-momentos').getContext('2d');
+            if (window.momentosChart) {
+                window.momentosChart.destroy();
+            }
+            window.momentosChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dados,
+                        backgroundColor: cores.slice(0, labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoHistograma(valores) {
+            const ctx = document.getElementById('grafico-histograma').getContext('2d');
+            
+            const bins = [0, 70, 100, 140, 180, 250, 500];
+            const contagem = Array(bins.length - 1).fill(0);
+
+            valores.forEach(valor => {
+                for (let i = 0; i < bins.length - 1; i++) {
+                    if (valor >= bins[i] && (valor < bins[i+1] || i === bins.length - 2)) {
+                        contagem[i]++;
+                        break;
+                    }
+                }
+            });
+            
+            const labels = ['<70', '70-99', '100-139', '140-179', '180-249', '≥250'];
+            
+            if (window.histogramaChart) {
+                window.histogramaChart.destroy();
+            }
+
+            window.histogramaChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Número de Registros',
+                        data: contagem,
+                        backgroundColor: [
+                            '#17a2b8',
+                            '#28a745',
+                            '#ffc107',
+                            '#dc3545',
+                            '#721c24',
+                            '#546E7A'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Registros' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        
+        function criarGraficoCurtoPrazo(registros) {
+            const ctx = document.getElementById('grafico-curto-prazo').getContext('2d');
+            const labels = registros.map(reg => reg.data.slice(5) + ' ' + reg.hora);
+            const dados = registros.map(reg => parseInt(reg.dextro));
+
+            if (window.curtoPrazoChart) {
+                window.curtoPrazoChart.destroy();
+            }
+
+            window.curtoPrazoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nível de Glicose (mg/dL)',
+                        data: dados,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: true, title: { display: true, text: 'Últimos Registros' } },
+                        y: { beginAtZero: false, title: { display: true, text: 'Glicose (mg/dL)' } }
+                    }
+                }
+            });
+        }
+        
+        function criarGraficoMediasPorMomento(registros) {
+            const medias = {};
+            const contagem = {};
+
+            registros.forEach(reg => {
+                const momento = reg.momento;
+                if (!medias[momento]) {
+                    medias[momento] = 0;
+                    contagem[momento] = 0;
+                }
+                medias[momento] += parseInt(reg.dextro);
+                contagem[momento]++;
+            });
+
+            for (const momento in medias) {
+                medias[momento] = medias[momento] / contagem[momento];
+            }
+
+            const labels = Object.keys(medias);
+            const dados = Object.values(medias);
+            const ctx = document.getElementById('grafico-momentos-media').getContext('2d');
+
+            if (window.momentosMediaChart) {
+                window.momentosMediaChart.destroy();
+            }
+
+            window.momentosMediaChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Média de Glicose (mg/dL)',
+                        data: dados,
+                        backgroundColor: '#28a745'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Glicose (mg/dL)' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
