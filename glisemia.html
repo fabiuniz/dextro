@@ -51,10 +51,6 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
         }
 
         .header {
@@ -81,8 +77,6 @@
             box-shadow: var(--shadow-lg);
             overflow: hidden;
             margin-bottom: 20px;
-            flex-grow: 1; /* Faz esta seção crescer para preencher o espaço restante */
-            overflow-y: auto;
         }
         
         .card-header {
@@ -693,7 +687,6 @@
                 border: 1px solid #ddd;
             }
         }
-        
     </style>
 </head>
 <body>
@@ -732,6 +725,9 @@
         <div class="sync-status" id="sync-status">
             ⏸️ Sincronização pausada
         </div>
+
+        <div class="main-card">
+            <div class="card-header">
                 <div class="search-container">
                     <span class="search-icon">🔍</span>
                     <input type="text" class="search-input" id="filterInput" placeholder="Pesquisar registros..." onkeyup="filtrarRegistros()">
@@ -739,9 +735,6 @@
                         🗑️ Limpar
                     </button>
                 </div>
-
-        <div class="main-card">
-            <div class="card-header">
             </div>
             <div class="table-container">
                 <div class="loading" id="loading">
@@ -849,6 +842,7 @@
         }
 
         function toggleFormulario() {
+            atualizarDataHora();
             const formContainer = document.querySelector('.form-container');
             const toggleButton = document.getElementById('form-toggle');
             
@@ -1368,7 +1362,26 @@
             const valoresDextro = registros.map(r => parseInt(r.dextro));
             atualizarEstatisticasFiltradas(valoresDextro, registros.length);
         }
-
+        
+        function atualizarDataHora() {
+          // Cria um novo objeto de data para obter a data e hora atuais
+          const agora = new Date();
+          // Formata a data para o formato 'YYYY-MM-DD'
+          // O método toISOString() retorna a data no formato ISO 8601 (ex: '2025-08-05T19:51:06.000Z')
+          // O slice(0, 10) extrai apenas a parte da data
+          const dataFormatada = agora.toISOString().slice(0, 10);
+          // Formata a hora para o formato 'HH:MM'
+          // O método toLocaleTimeString() formata a hora de acordo com as configurações locais,
+          // mas é mais simples extrair manualmente
+          const horaFormatada = agora.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          // Encontra os elementos de input pelo ID e atualiza os valores
+          document.getElementById('data').value = dataFormatada;
+          document.getElementById('hora').value = horaFormatada;
+        }
         // Carregar registros ao carregar a página
         window.onload = carregarDoLocalStorage;
     </script>
