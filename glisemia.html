@@ -51,6 +51,10 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         .header {
@@ -77,6 +81,8 @@
             box-shadow: var(--shadow-lg);
             overflow: hidden;
             margin-bottom: 20px;
+            flex-grow: 1; /* Faz esta seção crescer para preencher o espaço restante */
+            overflow-y: auto;
         }
         
         .card-header {
@@ -687,6 +693,7 @@
                 border: 1px solid #ddd;
             }
         }
+        
     </style>
 </head>
 <body>
@@ -725,9 +732,6 @@
         <div class="sync-status" id="sync-status">
             ⏸️ Sincronização pausada
         </div>
-
-        <div class="main-card">
-            <div class="card-header">
                 <div class="search-container">
                     <span class="search-icon">🔍</span>
                     <input type="text" class="search-input" id="filterInput" placeholder="Pesquisar registros..." onkeyup="filtrarRegistros()">
@@ -735,6 +739,9 @@
                         🗑️ Limpar
                     </button>
                 </div>
+
+        <div class="main-card">
+            <div class="card-header">
             </div>
             <div class="table-container">
                 <div class="loading" id="loading">
