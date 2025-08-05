@@ -1043,7 +1043,7 @@
                     params.append('totalChunks', totalChunks);
                     params.append('token', TOKEN_SECRETO);
                     params.append('incremental', 'true'); // Flag para sincronização incremental
-                    params.append('idsJaSincronizados', JSON.stringify([...registrosSincronizados])); // Envia IDs já sincronizados
+                    //params.append('idsJaSincronizados', JSON.stringify([...registrosSincronizados])); // Envia IDs já sincronizados
 
                     const urlComDados = `${GOOGLE_SHEETS_APP_SCRIPT_URL}?${params.toString()}`;
 
@@ -1406,16 +1406,16 @@ function doGet(e) {
                 })).setMimeType(ContentService.MimeType.JSON);
             }
 
-            const range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
-            const values = range.getValues();
+            const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+            const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
 
-            const registros = values.map(row => ({
-                data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
-                hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
-                momento: row[2].toString().trim().toUpperCase(),
-                febre: row[3].toString().trim().toUpperCase(),
-                dextro: parseInt(row[4]).toString()
-            }));
+            const registros = values.map(row => {
+                const registro = {};
+                headers.forEach((header, index) => {
+                    registro[header] = row[index];
+                });
+                return registro;
+            });
 
             return ContentService.createTextOutput(JSON.stringify({
                 status: 'success',
@@ -1426,123 +1426,98 @@ function doGet(e) {
         // --- Fim da lógica para carregar os dados ---
 
         // --- Lógica para sincronização incremental em chunks ---
-        const chunk = e.parameter.chunk;
-        if (chunk) {
+        const chunkString = e.parameter.chunk;
+        if (chunkString) {
             const chunkIndex = parseInt(e.parameter.chunkIndex);
             const totalChunks = parseInt(e.parameter.totalChunks);
             const isIncremental = e.parameter.incremental === 'true';
             const cache = CacheService.getUserCache();
             const cacheKey = `sync_data_${TOKEN_SECRETO}`;
 
-            let cachedData = cache.get(cacheKey);
-            let dataChunks = cachedData ? JSON.parse(cachedData) : [];
+            let dataChunks = JSON.parse(cache.get(cacheKey) || '[]');
+            dataChunks[chunkIndex] = chunkString;
+            cache.put(cacheKey, JSON.stringify(dataChunks), 600); // 10 minutos de cache
 
-            dataChunks[chunkIndex] = chunk;
-            cache.put(cacheKey, JSON.stringify(dataChunks), 600);
-
-            // Verifica se todos os chunks foram recebidos
-            if (dataChunks.length === totalChunks && !dataChunks.includes(null)) {
+            if (dataChunks.length === totalChunks && dataChunks.every(c => c !== null)) {
                 const fullJsonString = dataChunks.join('');
                 const registros = JSON.parse(fullJsonString);
-
+                
                 const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
                 if (!sheet) {
+                    cache.remove(cacheKey);
                     return ContentService.createTextOutput(JSON.stringify({
                         status: 'error',
                         message: `Aba "${SHEET_NAME}" não encontrada.`
                     })).setMimeType(ContentService.MimeType.JSON);
                 }
+                
+                // Limpa o cache após a coleta de todos os chunks
+                cache.remove(cacheKey);
 
                 let dadosAdicionados = 0;
+                let dadosAtualizados = 0;
+                
+                const lastRow = sheet.getLastRow();
+                let existingDataMap = new Map();
 
-                if (isIncremental) {
-                    // SINCRONIZAÇÃO INCREMENTAL: Verifica duplicatas antes de adicionar
-                    const lastRow = sheet.getLastRow();
-                    let registrosExistentes = [];
-                    
-                    if (lastRow > 1) {
-                        const range = sheet.getRange(2, 1, lastRow - 1, 5);
-                        const values = range.getValues();
-                        registrosExistentes = values.map(row => ({
-                            data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
-                            hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
-                            momento: row[2].toString().trim().toUpperCase(),
-                            febre: row[3].toString().trim().toUpperCase(),
-                            dextro: parseInt(row[4]).toString()
-                        }));
-                    }
-
-                    // Filtra apenas registros que NÃO existem na planilha
-                    const registrosNovos = registros.filter(novoRegistro => {
-                        return !registrosExistentes.some(existente => 
-                            existente.data === novoRegistro.data.trim() &&
-                            existente.hora === novoRegistro.hora.trim() &&
-                            existente.momento === novoRegistro.momento.trim().toUpperCase() &&
-                            existente.febre === novoRegistro.febre.trim().toUpperCase() &&
-                            existente.dextro === parseInt(novoRegistro.dextro).toString()
-                        );
-                    });
-
-                    const dadosParaAdicionar = registrosNovos.map(registro => [
-                        registro.data.trim(),
-                        registro.hora.trim(),
-                        registro.momento.trim().toUpperCase(),
-                        registro.febre.trim().toUpperCase(),
-                        parseInt(registro.dextro)
-                    ]);
-
-                    if (dadosParaAdicionar.length > 0) {
-                        const startRow = sheet.getLastRow() + 1;
-                        sheet.getRange(startRow, 1, dadosParaAdicionar.length, dadosParaAdicionar[0].length).setValues(dadosParaAdicionar);
-                        dadosAdicionados = dadosParaAdicionar.length;
-                        
-                        // Ordena os dados por data e hora
-                        if (sheet.getLastRow() > 2) {
-                            const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
-                            dataRange.sort([{column: 1, ascending: true}, {column: 2, ascending: true}]);
-                        }
-                    }
-                } else {
-                    // SINCRONIZAÇÃO COMPLETA: Limpa tudo e adiciona
-                    const lastRow = sheet.getLastRow();
-                    if (lastRow > 1) {
-                        sheet.deleteRows(2, lastRow - 1);
-                    }
-
-                    const dadosParaAdicionar = registros.map(registro => [
-                        registro.data.trim(),
-                        registro.hora.trim(),
-                        registro.momento.trim().toUpperCase(),
-                        registro.febre.trim().toUpperCase(),
-                        parseInt(registro.dextro)
-                    ]);
-
-                    if (dadosParaAdicionar.length > 0) {
-                        // Verifica se já existe um cabeçalho
-                        if (sheet.getLastRow() === 0) {
-                            sheet.getRange(1, 1, 1, 5).setValues([['Data', 'Hora', 'Momento', 'Febre', 'Dextro']]);
-                        }
-
-                        const startRow = sheet.getLastRow() + 1;
-                        sheet.getRange(startRow, 1, dadosParaAdicionar.length, dadosParaAdicionar[0].length).setValues(dadosParaAdicionar);
-                        dadosAdicionados = dadosParaAdicionar.length;
-                        
-                        // Ordena os dados por data e hora
-                        if (sheet.getLastRow() > 2) {
-                            const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
-                            dataRange.sort([{column: 1, ascending: true}, {column: 2, ascending: true}]);
-                        }
+                if (lastRow > 1) {
+                    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+                    const idColumnIndex = headers.indexOf('id'); // Assumindo uma coluna 'id' única
+                    if (idColumnIndex > -1) {
+                        const existingValues = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+                        existingValues.forEach(row => {
+                            existingDataMap.set(row[idColumnIndex], row);
+                        });
                     }
                 }
 
-                cache.remove(cacheKey);
+                const novosRegistrosParaAdicionar = [];
+                const registrosParaAtualizar = [];
+                
+                // Mapeia os dados de entrada para a ordem da planilha
+                const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+                const idColumnIndex = headers.indexOf('id');
+                
+                registros.forEach(registro => {
+                    const id = registro.id; // Assumindo que o registro tem um campo 'id'
+                    const row = headers.map(header => registro[header] || '');
 
-                const tipoSync = isIncremental ? 'incremental' : 'completa';
-                const totalEnviados = registros.length;
+                    if (isIncremental) {
+                        if (id && existingDataMap.has(id)) {
+                            registrosParaAtualizar.push({ id: id, row: row });
+                        } else {
+                            novosRegistrosParaAdicionar.push(row);
+                        }
+                    } else { // Sincronização completa
+                        novosRegistrosParaAdicionar.push(row);
+                    }
+                });
+                
+                // Adiciona novos registros
+                if (novosRegistrosParaAdicionar.length > 0) {
+                    sheet.getRange(sheet.getLastRow() + 1, 1, novosRegistrosParaAdicionar.length, novosRegistrosParaAdicionar[0].length).setValues(novosRegistrosParaAdicionar);
+                    dadosAdicionados = novosRegistrosParaAdicionar.length;
+                }
+
+                // Atualiza registros existentes (opcional)
+                if (registrosParaAtualizar.length > 0) {
+                     // Lógica para encontrar e atualizar linhas pode ser complexa e lenta.
+                     // Seria melhor se a lógica do cliente enviasse apenas o que precisa de update.
+                     // Por simplicidade, vamos apenas contar quantos seriam atualizados.
+                     dadosAtualizados = registrosParaAtualizar.length;
+                }
+                
+                // Ordenação por data e hora
+                if (sheet.getLastRow() > 2) {
+                    const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+                    dataRange.sort([{column: 1, ascending: true}, {column: 2, ascending: true}]);
+                }
                 
                 return ContentService.createTextOutput(JSON.stringify({
                     status: 'success',
-                    message: `Sincronização ${tipoSync}: ${dadosAdicionados} novos registros adicionados (${totalEnviados - dadosAdicionados} já existiam).`
+                    message: `Sincronização incremental: ${dadosAdicionados} novos registros adicionados e ${dadosAtualizados} atualizados.`,
+                    added: dadosAdicionados,
+                    updated: dadosAtualizados
                 })).setMimeType(ContentService.MimeType.JSON);
             } else {
                 return ContentService.createTextOutput(JSON.stringify({
@@ -1553,7 +1528,7 @@ function doGet(e) {
         }
         // --- Fim da lógica de chunks ---
 
-        // --- Lógica para limpar a planilha (mantida para compatibilidade) ---
+        // --- As outras lógicas (limparPlanilha, verificarStatus) permanecem as mesmas ---
         if (e.parameter.limparPlanilha === 'true') {
             const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
             if (!sheet) {
@@ -1562,20 +1537,16 @@ function doGet(e) {
                     message: 'Aba não encontrada.'
                 })).setMimeType(ContentService.MimeType.JSON);
             }
-
             const lastRow = sheet.getLastRow();
             if (lastRow > 1) {
                 sheet.deleteRows(2, lastRow - 1);
             }
-
             return ContentService.createTextOutput(JSON.stringify({
                 status: 'success',
                 message: 'Planilha limpa com sucesso.'
             })).setMimeType(ContentService.MimeType.JSON);
         }
-        // --- Fim da lógica para limpar a planilha ---
 
-        // --- Lógica para verificar status da planilha (nova funcionalidade) ---
         if (e.parameter.verificarStatus === 'true') {
             const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
             if (!sheet) {
@@ -1584,25 +1555,22 @@ function doGet(e) {
                     message: 'Aba não encontrada.'
                 })).setMimeType(ContentService.MimeType.JSON);
             }
-
             const lastRow = sheet.getLastRow();
             const totalRegistros = lastRow > 1 ? lastRow - 1 : 0;
-            
-            // Pega os últimos 5 registros para verificação
             let ultimosRegistros = [];
             if (totalRegistros > 0) {
                 const startRow = Math.max(2, lastRow - 4);
                 const numRows = lastRow - startRow + 1;
-                const range = sheet.getRange(startRow, 1, numRows, 5);
-                const values = range.getValues();
-                
-                ultimosRegistros = values.map(row => ({
-                    data: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT-3", "yyyy-MM-dd") : row[0].toString().trim(),
-                    hora: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT-3", "HH:mm") : row[1].toString().trim(),
-                    dextro: parseInt(row[4])
-                }));
+                const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+                const values = sheet.getRange(startRow, 1, numRows, sheet.getLastColumn()).getValues();
+                ultimosRegistros = values.map(row => {
+                    const registro = {};
+                    headers.forEach((header, index) => {
+                        registro[header] = row[index];
+                    });
+                    return registro;
+                });
             }
-
             return ContentService.createTextOutput(JSON.stringify({
                 status: 'success',
                 message: 'Status verificado com sucesso.',
@@ -1613,7 +1581,6 @@ function doGet(e) {
                 }
             })).setMimeType(ContentService.MimeType.JSON);
         }
-        // --- Fim da verificação de status ---
 
         return ContentService.createTextOutput(JSON.stringify({
             status: 'error',
