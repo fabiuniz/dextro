@@ -692,6 +692,7 @@
 <body>
     <div class="loading-overlay" id="loading-overlay">
         <div class="loading-spinner"></div>
+        <p id="loading-message">Sincronizando...</p>
     </div>
     <div class="container">
         <header class="header">
@@ -1024,8 +1025,11 @@
                 return;
             }
 
+            const loadingMessage = document.getElementById('loading-message')
+            loadingMessage.innerText = 'Iniciando a sincronização...';
             const loadingOverlay = document.getElementById('loading-overlay');
             loadingOverlay.style.display = 'flex';
+
             atualizarStatusSincronizacao('syncing');
 
             try {
@@ -1047,8 +1051,14 @@
                     //params.append('idsJaSincronizados', JSON.stringify([...registrosSincronizados])); // Envia IDs já sincronizados
 
                     const urlComDados = `${GOOGLE_SHEETS_APP_SCRIPT_URL}?${params.toString()}`;
-
-                    console.log(`Enviando parte ${i + 1} de ${totalChunks}...`);
+                    var status_envio=`Enviando parte ${i + 1} de ${totalChunks}...`;
+                    console.log(status_envio);
+                    document.getElementById('loading-message').innerHTML = `
+                    <div class="loading-content">
+                        <div class="spinner"></div>
+                        <p>`+status_envio+ `</p>
+                    </div>
+`;
                     const response = await fetch(urlComDados, {
                         method: 'GET',
                         mode: 'cors'
