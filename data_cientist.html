@@ -640,7 +640,7 @@
         
         function criarGraficoCurtoPrazo(registros) {
             const ctx = document.getElementById('grafico-curto-prazo').getContext('2d');
-            const labels = registros.map(reg => reg.data.slice(5) + ' ' + reg.hora);
+            const labels = registros.map(reg => reg.data.slice(5) + ' ' + reg.hora); // Esta linha está amontoando os dados
             const dados = registros.map(reg => parseInt(reg.dextro));
 
             if (window.curtoPrazoChart) {
