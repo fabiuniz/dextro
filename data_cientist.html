@@ -456,7 +456,7 @@
         function analiseSazonalidade(registros) {
             const mediasPorDia = { 'Domingo': [], 'Segunda': [], 'Terça': [], 'Quarta': [], 'Quinta': [], 'Sexta': [], 'Sábado': [] };
             registros.forEach(reg => {
-                const data = new Date(reg.data + 'T00:00:00');
+                const data = new Date(reg.data);
                 const diaDaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][data.getDay()];
                 if (!mediasPorDia[diaDaSemana]) {
                    mediasPorDia[diaDaSemana] = [];
