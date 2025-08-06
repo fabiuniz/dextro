@@ -455,11 +455,13 @@
 
         function analiseSazonalidade(registros) {
             const mediasPorDia = { 'Domingo': [], 'Segunda': [], 'Terça': [], 'Quarta': [], 'Quinta': [], 'Sexta': [], 'Sábado': [] };
-            
             registros.forEach(reg => {
                 const data = new Date(reg.data + 'T00:00:00');
                 const diaDaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][data.getDay()];
-                mediasPorDia[diaDaSemana].push(parseInt(reg.dextro));
+                if (!mediasPorDia[diaDaSemana]) {
+                   mediasPorDia[diaDaSemana] = [];
+                }
+                mediasPorDia[diaDaSemana].push(parseInt(reg.dextro)); // Agora o .push() funciona
             });
 
             const labels = Object.keys(mediasPorDia);
