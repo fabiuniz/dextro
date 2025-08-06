@@ -828,11 +828,16 @@
     </div>
     <input type="file" id="import-file" style="display: none;" accept=".json" onchange="carregarArquivo(event)">
     <div id="tooltip" class="tooltip"></div>
-
+    
+    <script src="../../js/subs_token.js"></script>
     <script>
         // Defina a URL do seu Apps Script e o token de segurança aqui.
-        const GOOGLE_SHEETS_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuTExm7YbSiz9RFyaYMwGp30O-TfSroPoltV7_2HEjF-FdjtRpYxbRVAzViCPSAXhk/exec';
-        const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; // <-- O MESMO TOKEN DO APPS SCRIPT AQUI
+        //const GOOGLE_SHEETS_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuTExm7YbSiz9RFyaYMwGp30O-TfSroPoltV7_2HEjF-FdjtRpYxbRVAzViCPSAXhk/exec';
+        //const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; // <-- O MESMO TOKEN DO APPS SCRIPT AQUI
+
+        const KEY_APP ="IOT_Glisemia";
+        const GOOGLE_SHEETS_APP_SCRIPT_URL = getConfigValue(KEY_APP,false);
+        const TOKEN_SECRETO = getConfigValue(KEY_APP,true);        
 
         // Sistema de controle de sincronização
         let registrosSincronizados = new Set();
