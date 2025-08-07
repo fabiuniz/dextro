@@ -9,7 +9,7 @@ const TOKEN_SECRETO =  get_token_by_api(SPREADSHEET_ID_TOKENS, SHEET_NAME_TOKEN,
 
 const SPREADSHEET_ID = '1nAi7ULJhax-P78vFUjVPsi-ZGzCalx-0iX7kWXtdNhQ'; 
 const SHEET_NAME = 'glisemia'; 
-const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; 
+//const TOKEN_SECRETO = 'seu_token_secreto_e_forte'; 
 
 
 function doGet(e) {
@@ -202,10 +202,12 @@ function doGet(e) {
         })).setMimeType(ContentService.MimeType.JSON);
     }
 }
-// --------------- Testes ----------------------------------------------------
+
+/* --------------- Testes ----------------------------------------------------
 
 https://script.google.com/macros/s/AKfycbwc7R9Wy32QrHkJCdk3mkQyCMmp9ayc_Qnir7cQhR7I/dev?token=seu_token_secreto_e_forte&chunk=%5B%7B%22id%22%3A%221%22%2C%22data%22%3A%222024-12-01%22%2C%22hora%22%3A%2206%3A00%22%2C%22momento%22%3A%22JEJUM%22%2C%22febre%22%3A%22n%C3%A3o%22%2C%22dextro%22%3A%22106%22%7D%2C%7B%22id%22%3A%222%22%2C%22data%22%3A%222024-12-01%22%2C%22hora%22%3A%2208%3A00%22%2C%22momento%22%3A%2202%20Horas%20P%C3%B3s%20Caf%C3%A9%22%2C%22febre%22%3A%22n%C3%A3o%22%2C%22dextro%22%3A%22104%22%7D%5D&chunkIndex=0&totalChunks=1&incremental=true
 https://script.google.com/macros/s/AKfycbwc7R9Wy32QrHkJCdk3mkQyCMmp9ayc_Qnir7cQhR7I/dev?token=seu_token_secreto_e_forte&chunk=%7B%22id%22%3A%222%22%2C%22data%22%3A%222024-12-01%22%2C%22hora%22%3A%2208%3A00%22%2C%22momento%22%3A%2202%20Horas%20P%C3%B3s%20Caf%C3%A9%22%2C%22febre%22%3A%22n%C3%A3o%22%2C%22dextro%22%3A%22104%22%7D%5D&chunkIndex=1&totalChunks=2&incremental=true
 
 https://script.google.com/macros/s/AKfycbwc7R9Wy32QrHkJCdk3mkQyCMmp9ayc_Qnir7cQhR7I/dev?token=seu_token_secreto_e_forte&chunk=%5B%7B%22id%22%3A%221%22%2C%22data%22%3A%222024-12-01%22%2C%22hora%22%3A%2206%3A00%22%2C%22febre%22%3A%22n%C3%A3o%22%2C%22dextro%22%3A%22106%22%7D%2C&chunkIndex=0&totalChunks=2&incremental=true
 https://script.google.com/macros/s/AKfycbwc7R9Wy32QrHkJCdk3mkQyCMmp9ayc_Qnir7cQhR7I/dev?token=seu_token_secreto_e_forte&chunk=%7B%22id%22%3A%222%22%2C%22data%22%3A%222024-12-01%22%2C%22hora%22%3A%2208%3A00%22%2C%22momento%22%3A%2202%20Horas%20P%C3%B3s%20Caf%C3%A9%22%2C%22febre%22%3A%22n%C3%A3o%22%2C%22dextro%22%3A%22104%22%7D%5D&chunkIndex=1&totalChunks=2&incremental=true
+*/
