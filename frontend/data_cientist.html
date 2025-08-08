@@ -317,21 +317,38 @@
         });
 
         function filterAndRender() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-            if (searchTerm === '') {
-                renderDashboard(allRegistros);
-                return;
-            }
+          const searchTerm = document.getElementById('search-input').value.trim();
+          if (searchTerm === '') {
+            renderDashboard(allRegistros);
+            return;
+          }
 
-            const filteredRegistros = allRegistros.filter(reg => 
-                reg.data.toLowerCase().includes(searchTerm) || 
-                reg.momento.toLowerCase().includes(searchTerm) ||
-                reg.dextro.toLowerCase().includes(searchTerm)
-            );
+          // Expressão regular para verificar o formato MM/AAAA
+          const monthYearRegex = /^(\d{2})\/(\d{4})$/;
+          const isMonthYearSearch = monthYearRegex.test(searchTerm);
+          const searchTermMonthYear = isMonthYearSearch ? searchTerm.split('/').reverse().join('-') : null;
 
-            renderDashboard(filteredRegistros);
+          // Verifica se o termo de pesquisa é um número
+          const isNumericSearch = !isNaN(searchTerm) && !isNaN(parseFloat(searchTerm));
+          const searchNumber = isNumericSearch ? parseFloat(searchTerm) : null;
+
+          const filteredRegistros = allRegistros.filter(reg => {
+            // Converte os campos para minúsculas para comparação de texto
+            const dataMatch = reg.data.toLowerCase().includes(searchTerm.toLowerCase());
+            const momentoMatch = reg.momento.toLowerCase().includes(searchTerm.toLowerCase());
+
+            // Compara a data no formato AAAA-MM para pesquisa por mês/ano
+            const monthYearMatch = isMonthYearSearch ? reg.data.startsWith(searchTermMonthYear) : false;
+
+            // Compara o valor numérico, se for o caso
+            const dextroMatch = isNumericSearch ? parseInt(reg.dextro) === searchNumber : false;
+
+            return dataMatch || momentoMatch || monthYearMatch || dextroMatch;
+          });
+
+          renderDashboard(filteredRegistros);
         }
-
+        
         function renderDashboard(registros) {
             if (registros.length === 0) {
                 document.querySelectorAll('.card, .header-stats-container').forEach(el => el.style.display = 'none');
