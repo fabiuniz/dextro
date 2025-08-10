@@ -1101,13 +1101,13 @@
 
         function classificarTabelaPorDataHora(tabela) {
             if (!tabela) {
-                console.error('Tabela não encontrada');
+                console.log('Tabela não encontrada');
                 return;
             }
             
             const tbody = tabela.querySelector('tbody');
             if (!tbody) {
-                console.error('tbody não encontrado');
+                console.log('tbody não encontrado');
                 return;
             }
             
@@ -1124,7 +1124,7 @@
                     const dataHoraB = obterDataHoraParaOrdenacao(b.cells[0].textContent, b.cells[1].textContent);
                     return dataHoraB - dataHoraA; // Ordem decrescente (mais recente primeiro)
                 } catch (error) {
-                    console.error('Erro ao ordenar linha:', error);
+                    console.log('Erro ao ordenar linha:', error);
                     return 0;
                 }
             });
@@ -1335,7 +1335,7 @@
                             }
 
                         } catch (error) {
-                            console.error(`Erro no lote ${numeroLote}:`, error);
+                            console.log(`Erro no lote ${numeroLote}:`, error);
 
                             if (totalRegistrosEnviados > 0) {
                                 // CORREÇÃO: Salva apenas os registros que foram enviados com sucesso
@@ -1360,7 +1360,7 @@
                 toggleFormulario(); // Fecha o formulário automaticamente
 
             } catch (error) {
-                console.error('Erro geral na sincronização:', error);
+                console.log('Erro geral na sincronização:', error);
                 atualizarStatusSincronizacao('error');
                 alert(`Erro ao sincronizar dados: ${error.message}`);
             } finally {
@@ -1471,7 +1471,7 @@
                 toggleFormulario();
 
             } catch (error) {
-                console.error('Erro ao carregar dados:', error);
+                console.log('Erro ao carregar dados:', error);
                 showNotification(`Erro ao carregar dados do Google Sheets: ${error.message}`, 'error');
             } finally {
                 loadingMessage.innerText = 'Sincronizando...'; // Reseta a mensagem
@@ -2093,7 +2093,7 @@
                 
                 console.log('Backup automático realizado com sucesso');
             } catch (error) {
-                console.error('Erro no backup automático:', error);
+                console.log('Erro no backup automático:', error);
             }
         }
 
