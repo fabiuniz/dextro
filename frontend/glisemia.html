@@ -865,13 +865,13 @@
                 <div class="form-group">
                     <label class="form-label" for="momento">⏰ Momento</label>
                     <select class="form-select" id="momento">
-                        <option value="Jejum">🌅 Jejum</option>
+                        <option value="JEJUM">🌅 Jejum</option>
                         <option value="Antes do café">☕ Antes do café</option>
-                        <option value="Depois do café">☕ Depois do café</option>
+                        <option value="02 horas Pós café">☕ Depois do café</option>
                         <option value="Antes do Almoço">🍽️ Antes do Almoço</option>
-                        <option value="Depois do Almoço">🍽️ Depois do Almoço</option>
+                        <option value="02 horas Pós Almoço">🍽️ Depois do Almoço</option>
                         <option value="Antes do jantar">🍽️ Antes do jantar</option>
-                        <option value="Depois do jantar">🍽️ Depois do jantar</option>
+                        <option value="02 hora pos jantar">🍽️ Depois do jantar</option>
                         <option value="Madrugada">🌙 Madrugada</option>
                     </select>
                 </div>
@@ -936,13 +936,14 @@
                 // Se já estiver no formato brasileiro, retorna como está
                 if (dataISO.includes('/')) return dataISO;
                 
-                // Converte de ISO para brasileiro
                 const data = new Date(dataISO);
                 if (isNaN(data.getTime())) return dataISO; // Se não for uma data válida, retorna original
                 
-                const dia = data.getDate().toString().padStart(2, '0');
-                const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-                const ano = data.getFullYear();
+                // Usa os métodos UTC para ignorar o fuso horário local
+                const dia = data.getUTCDate().toString().padStart(2, '0');
+                const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
+                const ano = data.getUTCFullYear();
+                
                 return `${dia}/${mes}/${ano}`;
             } catch (e) {
                 return dataISO;
@@ -1222,74 +1223,80 @@
             atualizarStatusSincronizacao('syncing');
 
             try {
-                    // Configurações do lote
                 const MAX_CHUNKS_POR_LOTE = 20;
                 const CHUNK_SIZE = 1500;
-
                 const jsonString = JSON.stringify(registrosPendentes);
                 const totalChunks = Math.ceil(jsonString.length / CHUNK_SIZE);
+                let registrosParaAtualizarUI = []; // Array para rastrear os registros sincronizados com sucesso
 
                 console.log(`Total de Partes: ${totalChunks}`);
 
                 if (totalChunks <= MAX_CHUNKS_POR_LOTE) {
                     await enviarLoteCompleto(jsonString, registrosPendentes, loadingMessage);
-                    carregarDoLocalStorage();
-                    atualizarStatusSincronizacao('synced');
-                    showNotification(`Sincronização concluída! ${registrosPendentes.length} registros foram enviados com sucesso.`);
-                    // Fecha o formulário automaticamente
-                    toggleFormulario();
-                    return;
-                }
+                    registrosParaAtualizarUI = registrosPendentes;
 
+                } else {
                     // Sistema de lotes para muitos chunks
-                let registrosProcessados = [];
-                let totalRegistrosEnviados = 0;
+                    let totalRegistrosEnviados = 0;
+                    const registrosPorLote = Math.ceil(registrosPendentes.length / Math.ceil(totalChunks / MAX_CHUNKS_POR_LOTE));
 
-                const registrosPorLote = Math.ceil(registrosPendentes.length / Math.ceil(totalChunks / MAX_CHUNKS_POR_LOTE));
+                    for (let loteIndex = 0; loteIndex < registrosPendentes.length; loteIndex += registrosPorLote) {
+                        const lote = registrosPendentes.slice(loteIndex, loteIndex + registrosPorLote);
+                        const numeroLote = Math.floor(loteIndex / registrosPorLote) + 1;
+                        const totalLotes = Math.ceil(registrosPendentes.length / registrosPorLote);
 
-                for (let loteIndex = 0; loteIndex < registrosPendentes.length; loteIndex += registrosPorLote) {
-                    const lote = registrosPendentes.slice(loteIndex, loteIndex + registrosPorLote);
-                    const numeroLote = Math.floor(loteIndex / registrosPorLote) + 1;
-                    const totalLotes = Math.ceil(registrosPendentes.length / registrosPorLote);
+                        loadingMessage.textContent = `Enviando lote ${numeroLote} de ${totalLotes} (${lote.length} registros)...`;
 
-                    loadingMessage.textContent = `Enviando lote ${numeroLote} de ${totalLotes} (${lote.length} registros)...`;
+                        try {
+                            await enviarLoteCompleto(JSON.stringify(lote), lote, loadingMessage, numeroLote, totalLotes);
 
-                    try {
-                        await enviarLoteCompleto(JSON.stringify(lote), lote, loadingMessage, numeroLote, totalLotes);
+                            lote.forEach(registro => {
+                                registrosSincronizados.add(registro.id);
+                                registrosParaAtualizarUI.push(registro);
+                            });
 
-                        lote.forEach(registro => {
-                            registrosSincronizados.add(registro.id);
-                            registrosProcessados.push(registro);
-                        });
+                            totalRegistrosEnviados += lote.length;
+                            ultimaSincronizacao = new Date().toISOString();
+                            salvarNoLocalStorage();
 
-                        totalRegistrosEnviados += lote.length;
-                        ultimaSincronizacao = new Date().toISOString();
-                        salvarNoLocalStorage();
+                            console.log(`Lote ${numeroLote} enviado com sucesso (${lote.length} registros)`);
 
-                        console.log(`Lote ${numeroLote} enviado com sucesso (${lote.length} registros)`);
+                            if (numeroLote < totalLotes) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
 
-                        if (numeroLote < totalLotes) {
-                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } catch (error) {
+                            console.error(`Erro no lote ${numeroLote}:`, error);
+
+                            if (totalRegistrosEnviados > 0) {
+                                carregarDoLocalStorage();
+                                atualizarStatusSincronizacao('synced');
+                                showNotification(`Sincronização parcial: ${totalRegistrosEnviados} de ${registrosPendentes.length} registros enviados.\n\nErro no lote ${numeroLote}: ${error.message}\n\nTente sincronizar novamente para enviar os registros restantes.`);
+                            } else {
+                                atualizarStatusSincronizacao('error');
+                                showNotification(`Erro na sincronização: ${error.message}`);
+                            }
+                            return;
                         }
-
-                    } catch (error) {
-                        console.error(`Erro no lote ${numeroLote}:`, error);
-
-                        if (totalRegistrosEnviados > 0) {
-                            carregarDoLocalStorage();
-                            atualizarStatusSincronizacao('synced');
-                            showNotification(`Sincronização parcial: ${totalRegistrosEnviados} de ${registrosPendentes.length} registros enviados.\n\nErro no lote ${numeroLote}: ${error.message}\n\nTente sincronizar novamente para enviar os registros restantes.`);
-                        } else {
-                            atualizarStatusSincronizacao('error');
-                            showNotification(`Erro na sincronização: ${error.message}`);
-                        }
-                        return;
                     }
                 }
+                
+                // Itera sobre os registros que foram enviados com sucesso e atualiza o DOM.
+                registrosParaAtualizarUI.forEach(registro => {
+                    const statusCell = document.querySelector(`td[data-id="${registro.id}"]`);
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="badge badge-success">✅ Sincro..</span>';
+                    }
+                });
+                
+                // Salva o novo estado no localStorage
+                salvarNoLocalStorage();
 
-                carregarDoLocalStorage();
+                // Atualiza o status geral da sincronização
+                ultimaSincronizacao = new Date().toISOString();
                 atualizarStatusSincronizacao('synced');
-                showNotification(`${totalRegistrosEnviados} registros sincronizados com sucesso em ${Math.ceil(registrosPendentes.length / registrosPorLote)} lotes!`);
+                showNotification(`Sincronização concluída! ${registrosParaAtualizarUI.length} registros foram enviados com sucesso.`);
+                toggleFormulario(); // Fecha o formulário automaticamente
 
             } catch (error) {
                 console.error('Erro geral na sincronização:', error);
