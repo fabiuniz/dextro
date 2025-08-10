@@ -1100,13 +1100,42 @@
         }
 
         function classificarTabelaPorDataHora(tabela) {
-            const linhas = Array.from(tabela.rows).filter(row => row.rowIndex > 0);
+            if (!tabela) {
+                console.error('Tabela não encontrada');
+                return;
+            }
+            
+            const tbody = tabela.querySelector('tbody');
+            if (!tbody) {
+                console.error('tbody não encontrado');
+                return;
+            }
+            
+            if (!tbody.rows || tbody.rows.length === 0) {
+                console.log('Nenhuma linha para ordenar');
+                return;
+            }
+            
+            const linhas = Array.from(tbody.rows);
+            
             linhas.sort((a, b) => {
-                const dataHoraA = obterDataHoraParaOrdenacao(a.cells[0].textContent, a.cells[1].textContent);
-                const dataHoraB = obterDataHoraParaOrdenacao(b.cells[0].textContent, b.cells[1].textContent);
-                return dataHoraB - dataHoraA; // Ordem decrescente (mais recente primeiro)
+                try {
+                    const dataHoraA = obterDataHoraParaOrdenacao(a.cells[0].textContent, a.cells[1].textContent);
+                    const dataHoraB = obterDataHoraParaOrdenacao(b.cells[0].textContent, b.cells[1].textContent);
+                    return dataHoraB - dataHoraA; // Ordem decrescente (mais recente primeiro)
+                } catch (error) {
+                    console.error('Erro ao ordenar linha:', error);
+                    return 0;
+                }
             });
-            linhas.forEach(linha => tabela.appendChild(linha));
+            
+            // Remove todas as linhas primeiro
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.firstChild);
+            }
+            
+            // Reinsere as linhas ordenadas
+            linhas.forEach(linha => tbody.appendChild(linha));
         }
 
         function obterDataHoraParaOrdenacao(dataTexto, horaTexto) {
@@ -1131,6 +1160,9 @@
                 const dataBR = colunas[0].textContent;
                 const dataISO = dataParaISO(dataBR);
 
+                // CORREÇÃO: Preserva o status de sincronização corretamente
+                const estaSincronizado = registrosSincronizados.has(idRegistro);
+
                 registros.push({
                     id: idRegistro,
                     data: dataISO, // Salva em formato ISO
@@ -1138,7 +1170,7 @@
                     momento: colunas[2].textContent,
                     febre: colunas[3].textContent,
                     dextro: colunas[4].textContent.replace(/\s+/g, '').replace(/[^\d]/g, ''), // Remove tudo exceto números
-                    sincronizado: registrosSincronizados.has(idRegistro)
+                    sincronizado: estaSincronizado // CORREÇÃO: Usa o valor correto do Set
                 });
             });
 
@@ -1151,6 +1183,22 @@
         }
 
         function carregarDoLocalStorage() {
+            // Verifica se a tabela existe no DOM
+            const tabela = document.querySelector("#tabela-registros");
+            if (!tabela) {
+                console.log('Tabela ainda não carregada, aguardando...');
+                // Reagenda para executar quando o DOM estiver pronto
+                setTimeout(carregarDoLocalStorage, 100);
+                return;
+            }
+            
+            const tbody = tabela.querySelector('tbody');
+            if (!tbody) {
+                console.log('tbody ainda não carregado, aguardando...');
+                setTimeout(carregarDoLocalStorage, 100);
+                return;
+            }
+
             const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
             const sincronizados = JSON.parse(localStorage.getItem("registrosSincronizados")) || [];
             const ultimaSync = localStorage.getItem("ultimaSincronizacao");
@@ -1158,8 +1206,7 @@
             registrosSincronizados = new Set(sincronizados);
             ultimaSincronizacao = ultimaSync;
 
-            const tabela = document.querySelector("#tabela-registros tbody");
-            tabela.innerHTML = '';
+            tbody.innerHTML = '';
 
             registros.forEach(registro => {
                 const novaLinha = document.createElement("tr");
@@ -1186,10 +1233,14 @@
                     <td data-id="${registro.id}">${statusBadge}</td>
                     <td><button class="btn btn-danger btn-sm" title="Remover" onclick="removerRegistro(this)">❌</button></td>
                 `;
-                tabela.appendChild(novaLinha);
+                tbody.appendChild(novaLinha);
             });
 
-            classificarTabelaPorDataHora(tabela);
+            // Só chama a classificação se houver registros e a tabela estiver pronta
+            if (registros.length > 0) {
+                classificarTabelaPorDataHora(tabela);
+            }
+            
             adicionarListenerMap();
             atualizarEstatisticas();
             atualizarStatusSincronizacao();
@@ -1197,7 +1248,12 @@
 
         function obterRegistrosPendentes() {
             const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
-            return registros.filter(registro => !registrosSincronizados.has(registro.id));
+            
+            // CORREÇÃO: Filtra corretamente usando o Set de sincronizados
+            return registros.filter(registro => {
+                const estaSincronizado = registrosSincronizados.has(registro.id);
+                return !estaSincronizado;
+            });
         }
 
         async function sincronizarIncrementalComGoogleSheets() {
@@ -1227,13 +1283,22 @@
                 const CHUNK_SIZE = 1500;
                 const jsonString = JSON.stringify(registrosPendentes);
                 const totalChunks = Math.ceil(jsonString.length / CHUNK_SIZE);
-                let registrosParaAtualizarUI = []; // Array para rastrear os registros sincronizados com sucesso
 
                 console.log(`Total de Partes: ${totalChunks}`);
 
                 if (totalChunks <= MAX_CHUNKS_POR_LOTE) {
                     await enviarLoteCompleto(jsonString, registrosPendentes, loadingMessage);
-                    registrosParaAtualizarUI = registrosPendentes;
+                    
+                    // CORREÇÃO: Marca todos os registros como sincronizados APÓS o envio bem-sucedido
+                    registrosPendentes.forEach(registro => {
+                        registrosSincronizados.add(registro.id);
+                        
+                        // CORREÇÃO: Atualiza o DOM imediatamente
+                        const statusCell = document.querySelector(`td[data-id="${registro.id}"]`);
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="badge badge-success">✅ Sincro..</span>';
+                        }
+                    });
 
                 } else {
                     // Sistema de lotes para muitos chunks
@@ -1250,14 +1315,18 @@
                         try {
                             await enviarLoteCompleto(JSON.stringify(lote), lote, loadingMessage, numeroLote, totalLotes);
 
+                            // CORREÇÃO: Marca registros como sincronizados APENAS após sucesso
                             lote.forEach(registro => {
                                 registrosSincronizados.add(registro.id);
-                                registrosParaAtualizarUI.push(registro);
+                                
+                                // Atualiza o DOM para cada registro do lote
+                                const statusCell = document.querySelector(`td[data-id="${registro.id}"]`);
+                                if (statusCell) {
+                                    statusCell.innerHTML = '<span class="badge badge-success">✅ Sincro..</span>';
+                                }
                             });
 
                             totalRegistrosEnviados += lote.length;
-                            ultimaSincronizacao = new Date().toISOString();
-                            salvarNoLocalStorage();
 
                             console.log(`Lote ${numeroLote} enviado com sucesso (${lote.length} registros)`);
 
@@ -1269,7 +1338,8 @@
                             console.error(`Erro no lote ${numeroLote}:`, error);
 
                             if (totalRegistrosEnviados > 0) {
-                                carregarDoLocalStorage();
+                                // CORREÇÃO: Salva apenas os registros que foram enviados com sucesso
+                                salvarNoLocalStorage();
                                 atualizarStatusSincronizacao('synced');
                                 showNotification(`Sincronização parcial: ${totalRegistrosEnviados} de ${registrosPendentes.length} registros enviados.\n\nErro no lote ${numeroLote}: ${error.message}\n\nTente sincronizar novamente para enviar os registros restantes.`);
                             } else {
@@ -1281,21 +1351,12 @@
                     }
                 }
                 
-                // Itera sobre os registros que foram enviados com sucesso e atualiza o DOM.
-                registrosParaAtualizarUI.forEach(registro => {
-                    const statusCell = document.querySelector(`td[data-id="${registro.id}"]`);
-                    if (statusCell) {
-                        statusCell.innerHTML = '<span class="badge badge-success">✅ Sincro..</span>';
-                    }
-                });
-                
-                // Salva o novo estado no localStorage
-                salvarNoLocalStorage();
-
-                // Atualiza o status geral da sincronização
+                // CORREÇÃO: Atualiza timestamp e salva APENAS após todos os envios
                 ultimaSincronizacao = new Date().toISOString();
+                salvarNoLocalStorage();
                 atualizarStatusSincronizacao('synced');
-                showNotification(`Sincronização concluída! ${registrosParaAtualizarUI.length} registros foram enviados com sucesso.`);
+                
+                showNotification(`Sincronização concluída! ${registrosPendentes.length} registros foram enviados com sucesso.`);
                 toggleFormulario(); // Fecha o formulário automaticamente
 
             } catch (error) {
@@ -1423,7 +1484,10 @@
             const pendingSyncElement = document.getElementById('pending-sync');
             const registrosPendentes = obterRegistrosPendentes();
 
-            pendingSyncElement.textContent = registrosPendentes.length;
+            // CORREÇÃO: Atualiza o contador correto de pendentes
+            if (pendingSyncElement) {
+                pendingSyncElement.textContent = registrosPendentes.length;
+            }
 
             if (status === 'syncing') {
                 statusElement.className = 'sync-status pending';
@@ -1435,13 +1499,14 @@
                 statusElement.className = 'sync-status error';
                 statusElement.textContent = '❌ Erro na sincronização';
             } else {
+                // CORREÇÃO: Lógica de status automático aprimorada
                 if (registrosPendentes.length > 0) {
                     statusElement.className = 'sync-status pending';
                     statusElement.textContent = `⏳ ${registrosPendentes.length} pendente(s)`;
                 } else if (ultimaSincronizacao) {
                     statusElement.className = 'sync-status synced';
-                    const dataSync = new Date(ultimaSincronizacao).toLocaleString('pt-BR');
-                    statusElement.textContent = `✅ ${formatarDataHoraCurta(ultimaSincronizacao)}`;
+                    const dataSync = formatarDataHoraCurta(ultimaSincronizacao);
+                    statusElement.textContent = `✅ ${dataSync}`;
                 } else {
                     statusElement.className = 'sync-status pending';
                     statusElement.textContent = '⏸️ Nunca sincronizado';
@@ -1813,41 +1878,40 @@
 
         // Inicialização da aplicação
         function inicializarApp() {
+            // Aguarda o DOM estar completamente carregado
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', inicializarApp);
+                return;
+            }
+            
             carregarDoLocalStorage();
             
             // Define data e hora atual por padrão
             atualizarDataHora();
             
-            // Adiciona listener para mudança de orientação
+            // Resto do código de inicialização...
             window.addEventListener('orientationchange', function() {
                 setTimeout(() => {
-                    // Reajusta layout após mudança de orientação
                     const statsGrid = document.getElementById("stats-grid");
                     if (window.innerWidth < window.innerHeight && window.innerWidth <= 768) {
-                        // Portrait mobile - mostra 2 colunas
                         statsGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
                     } else if (window.innerWidth > window.innerHeight && window.innerWidth <= 768) {
-                        // Landscape mobile - mostra 5 colunas
                         statsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)';
                     }
                 }, 500);
             });
 
-            // Adiciona listener para resize
             window.addEventListener('resize', debounce(() => {
                 ajustarLayoutResponsivo();
             }, 250));
 
-            // Verifica se é PWA e ajusta interface
             if (window.matchMedia('(display-mode: standalone)').matches) {
                 document.body.classList.add('pwa-mode');
             }
 
-            // Auto-salva dados a cada 30 segundos se houver mudanças
             setInterval(() => {
                 const registros = JSON.parse(localStorage.getItem("registrosGlicemia")) || [];
                 if (registros.length > 0) {
-                    // Verifica se há mudanças não salvas
                     const ultimoBackup = localStorage.getItem("ultimoBackup");
                     const agora = Date.now();
                     
