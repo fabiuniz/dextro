@@ -469,7 +469,7 @@
 
         .form-toggle.active {
             background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-            transform: rotate(45deg);
+            transform: rotate(90deg);
         }
 
         /* Tooltip otimizado */
@@ -1672,8 +1672,12 @@
             input.value = '';
             filtrarRegistros();
         }
-
         function imprimirTabela() {
+          // ⚠️ Use a nova ponte JavaScript-Android ⚠️
+          // A chamada abaixo vai acionar o diálogo de impressão no Android
+          AndroidInterface.printPage(); 
+        }
+        function _imprimirTabela() {
             window.print();
         }
 
@@ -1755,7 +1759,7 @@
                     return dataHoraB - dataHoraA;
                 });
 
-                const last = registrosOrdenados[0];
+                const last = registrosOrdenados[registrosOrdenados.length-1];
                 lastRecordEl.textContent = `${last.dextro}`;
             } else {
                 avgGlucoseEl.textContent = "0";
