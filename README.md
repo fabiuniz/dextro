@@ -1,7 +1,7 @@
 <!-- 
   Tags: DadosIA
   Label: 🩸 Registro de Glicemia
-  Description: Sistema moderno com analise de dados para controle glicêmico
+  Description:⭐ Sistema moderno com analise de dados para controle glicêmico
   path_hook: hookfigma.hook1
 -->
 
