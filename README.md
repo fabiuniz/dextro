@@ -2,6 +2,7 @@
   Tags: DadosIA
   Label: 🩸 Registro de Glicemia
   Description:⭐ Sistema moderno com analise de dados para controle glicêmico
+  technical_requirement: HTML5, CSS3, JavaScript ES6+, Chart.js, Local Storage, Google Apps Script, Google Sheets API, Responsive Design, PWA (Progressive Web App), Offline First
   path_hook: hookfigma.hook1
 -->
 
