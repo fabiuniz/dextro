@@ -1,0 +1,1 @@
+const KEY_APP ="IOT_Glisemia";
