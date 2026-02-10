@@ -526,7 +526,13 @@
         // --- Funções para Gráficos ---
 
         function criarGraficoDeLinha(registros) {
-            const labels = registros.map(reg => reg.hora);
+            const labels = registros.map(reg => {
+                // Pega apenas o que vem antes do "T" (a data)
+                const dataLimpa = reg.data.split('T')[0];                 
+                // Inverte de AAAA-MM-DD para DD/MM
+                const [ano, mes, dia] = dataLimpa.split('-');                
+                return `${dia}/${mes}/${ano} ${reg.hora}`;
+            });
             const dados = registros.map(reg => parseInt(reg.dextro));
 
             const ctx = document.getElementById('grafico-glicemia').getContext('2d');
