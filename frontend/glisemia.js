@@ -763,7 +763,7 @@
         }
 
         function abrirAnalises() {
-            window.open('data_cientist.html', '_blank');
+            window.open('data_cientist.html', '_self');
         }
 
         function limparTodosDados() {
